@@ -24,28 +24,32 @@ extension Track {
   static let unknownTitle = String(localized: "Unknown Title")
   static let unknownArtist = String(localized: "Unknown Artist")
   static let unknownAlbum = String(localized: "Unknown Album")
+  static let variousArtists = String(localized: "Various Artists")
 
   /// Builds a track from library metadata, filling in missing names.
   ///
-  /// The library gives each song with no album name its own album ID, so
-  /// an artist's album-less songs would show as many untitled albums. They
-  /// are grouped instead into one "Unknown Album" per album artist.
+  /// Albums are grouped by name, not by the library's album ID, which can
+  /// split one album into several (and gives every song with no album name
+  /// its own ID). Songs with the same album name are one album, unless
+  /// they're by different album artists. Compilations group by name alone.
+  /// Songs with no album name form one "Unknown Album" per artist.
   static func fromLibrary(
     id: ID, title: String?, artist: String?, artistID: UInt64,
-    album: String?, albumID: UInt64, albumArtist: String?, albumArtistID: UInt64,
+    album: String?, albumArtist: String?, isCompilation: Bool,
     trackNumber: Int, discNumber: Int, duration: TimeInterval,
     dateAdded: Date, lastPlayedDate: Date?, playCount: Int
   ) -> Track {
     let album = nonBlank(album)
-    let groupArtistID = albumArtistID != 0 ? albumArtistID : artistID
+    let artist = nonBlank(artist) ?? unknownArtist
+    let albumArtist = nonBlank(albumArtist) ?? (isCompilation && album != nil ? variousArtists : nil)
     return Track(
       id: id,
       title: nonBlank(title) ?? unknownTitle,
-      artist: nonBlank(artist) ?? unknownArtist,
+      artist: artist,
       artistID: artistID,
       album: album ?? unknownAlbum,
-      albumID: album == nil ? unknownAlbumID(forArtist: groupArtistID) : albumID,
-      albumArtist: nonBlank(albumArtist) ?? "",
+      albumID: albumID(name: album ?? "", artist: albumArtist ?? artist),
+      albumArtist: albumArtist ?? "",
       trackNumber: trackNumber,
       discNumber: discNumber,
       duration: duration,
@@ -54,9 +58,14 @@ extension Track {
       playCount: playCount)
   }
 
-  /// A made-up album ID for an artist's songs with no album.
-  static func unknownAlbumID(forArtist artistID: UInt64) -> Album.ID {
-    artistID ^ 0x5EED_0F0A_1B0C_0000
+  /// A stable ID for an album name and artist (FNV-1a hash), ignoring case
+  /// and accents.
+  static func albumID(name: String, artist: String) -> Album.ID {
+    var hash: UInt64 = 0xCBF2_9CE4_8422_2325
+    for byte in "\(SortKey.fold(name))\u{1}\(SortKey.fold(artist))".utf8 {
+      hash = (hash ^ UInt64(byte)) &* 0x0000_0100_0000_01B3
+    }
+    return hash
   }
 
   private static func nonBlank(_ s: String?) -> String? {

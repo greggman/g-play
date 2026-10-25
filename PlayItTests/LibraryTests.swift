@@ -155,38 +155,66 @@ struct StateStoreTests {
   }
 }
 
-struct MissingMetadataTests {
+struct AlbumGroupingTests {
   private func track(
-    _ id: Track.ID, album: String?, albumID: UInt64, artist: String? = "Bit Shifter", artistID: UInt64 = 7,
-    albumArtistID: UInt64 = 7
+    _ id: Track.ID, album: String?, artist: String? = "Bit Shifter", albumArtist: String? = nil,
+    compilation: Bool = false
   ) -> Track {
     Track.fromLibrary(
-      id: id, title: "Song \(id)", artist: artist, artistID: artistID, album: album, albumID: albumID,
-      albumArtist: artist, albumArtistID: albumArtistID, trackNumber: 0, discNumber: 1, duration: 100,
+      id: id, title: "Song \(id)", artist: artist, artistID: 7, album: album,
+      albumArtist: albumArtist, isCompilation: compilation, trackNumber: 0, discNumber: 1, duration: 100,
       dateAdded: .distantPast, lastPlayedDate: nil, playCount: 0)
   }
 
-  /// The library gives each album-less song its own album ID; they should
-  /// group into one "Unknown Album" per artist, listed after named albums.
+  private func albums(_ tracks: [Track]) -> [Album] {
+    LibrarySnapshot(tracks: tracks, systemPlaylists: []).albumsByTitle
+  }
+
+  /// Songs with no album name form one "Unknown Album" per artist, listed
+  /// after named albums.
   @Test func songsWithoutAlbumGroupPerArtist() {
-    let snapshot = LibrarySnapshot(
-      tracks: [
-        track(1, album: "", albumID: 100),
-        track(2, album: "Life's A Bit Shifter", albumID: 200),
-        track(3, album: nil, albumID: 300),
-        track(4, album: "  ", albumID: 400),
-        track(5, album: "", albumID: 500, artist: "Other", artistID: 8, albumArtistID: 8),
-      ],
-      systemPlaylists: [])
-    #expect(snapshot.albums.count == 3)
-    let titles = snapshot.albumsByTitle.map(\.title)
-    #expect(titles == ["Life's A Bit Shifter", Track.unknownAlbum, Track.unknownAlbum])
-    #expect(snapshot.albumsByTitle[1].artist == "Bit Shifter")
-    #expect(Set(snapshot.albumsByTitle[1].trackIDs) == [1, 3, 4])
+    let result = albums([
+      track(1, album: ""),
+      track(2, album: "Life's A Bit Shifter"),
+      track(3, album: nil),
+      track(4, album: "  "),
+      track(5, album: "", artist: "Other"),
+    ])
+    #expect(result.map(\.title) == ["Life's A Bit Shifter", Track.unknownAlbum, Track.unknownAlbum])
+    #expect(result[1].artist == "Bit Shifter")
+    #expect(Set(result[1].trackIDs) == [1, 3, 4])
+  }
+
+  /// Same album name and artist is one album, however the library splits it.
+  @Test func sameNameAndArtistIsOneAlbum() {
+    let result = albums([
+      track(1, album: "Abbey Road", artist: "The Beatles"),
+      track(2, album: "abbey road", artist: "the beatles"),
+      track(3, album: "Abbey Road", artist: "George Harrison", albumArtist: "The Beatles"),
+    ])
+    #expect(result.count == 1)
+    #expect(result[0].trackIDs.count == 3)
+  }
+
+  @Test func sameNameDifferentArtistsStaySeparate() {
+    let result = albums([
+      track(1, album: "Greatest Hits", artist: "Queen"),
+      track(2, album: "Greatest Hits", artist: "ABBA"),
+    ])
+    #expect(result.count == 2)
+  }
+
+  @Test func compilationsGroupByName() {
+    let result = albums([
+      track(1, album: "Now 42", artist: "A", compilation: true),
+      track(2, album: "Now 42", artist: "B", compilation: true),
+    ])
+    #expect(result.count == 1)
+    #expect(result[0].artist == Track.variousArtists)
   }
 
   @Test func blankNamesGetPlaceholders() {
-    let t = track(1, album: "A", albumID: 1, artist: "", artistID: 0, albumArtistID: 0)
+    let t = track(1, album: "A", artist: "")
     #expect(t.artist == Track.unknownArtist)
     #expect(t.albumArtist == "")
   }
