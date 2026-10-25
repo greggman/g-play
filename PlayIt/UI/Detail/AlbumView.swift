@@ -25,14 +25,12 @@ struct AlbumView: View {
         }
 
         Section {
-          ForEach(Array(album.trackIDs.enumerated()), id: \.element) { index, trackID in
-            if let track = model.track(trackID) {
-              Button { model.play(.album(id), startingAt: trackID) } label: {
-                TrackRow(track: track, number: track.trackNumber > 0 ? track.trackNumber : index + 1)
-              }
-              .buttonStyle(.plain)
-              .mediaActions(.track(trackID), playContext: .album(id))
+          ForEach(Array(model.snapshot.tracks(album.trackIDs).enumerated()), id: \.element.id) { index, track in
+            Button { model.play(.album(id), startingAt: track.id) } label: {
+              TrackRow(track: track, number: track.trackNumber > 0 ? track.trackNumber : index + 1)
             }
+            .buttonStyle(.plain)
+            .mediaActions(.track(track.id), playContext: .album(id))
           }
         } footer: {
           Text(summary(album))

@@ -1,21 +1,30 @@
 import SwiftUI
 
-/// Caches artwork by track and pixel size.
+/// Caches artwork by album (tracks on an album share artwork) and pixel size.
 @MainActor
 final class ArtworkCache {
   static let shared = ArtworkCache()
   private let cache = NSCache<NSString, UIImage>()
 
   init() {
-    cache.countLimit = 500
+    cache.countLimit = 1_000
   }
 
-  func image(for trackID: Track.ID, size: CGFloat, library: MusicLibrary) async -> UIImage? {
-    let key = "\(trackID)-\(Int(size))" as NSString
+  func cachedImage(key: UInt64, size: CGFloat) -> UIImage? {
+    cache.object(forKey: Self.key(key, size))
+  }
+
+  /// - Parameter key: the album ID, or the track ID if it isn't known.
+  func image(for trackID: Track.ID, key: UInt64, size: CGFloat, library: MusicLibrary) async -> UIImage? {
+    let key = Self.key(key, size)
     if let image = cache.object(forKey: key) { return image }
     guard let image = await library.artwork(for: trackID, size: size) else { return nil }
     cache.setObject(image, forKey: key)
     return image
+  }
+
+  private static func key(_ key: UInt64, _ size: CGFloat) -> NSString {
+    "\(key)-\(Int(size))" as NSString
   }
 }
 
@@ -54,7 +63,15 @@ struct ArtworkView: View {
         image = nil
         return
       }
-      image = await ArtworkCache.shared.image(for: trackID, size: size * displayScale, library: model.library)
+      let key = model.track(trackID)?.albumID ?? trackID
+      let pixels = size * displayScale
+      // Show cached artwork immediately rather than after a placeholder frame.
+      if let cached = ArtworkCache.shared.cachedImage(key: key, size: pixels) {
+        image = cached
+        return
+      }
+      image = nil
+      image = await ArtworkCache.shared.image(for: trackID, key: key, size: pixels, library: model.library)
     }
   }
 }

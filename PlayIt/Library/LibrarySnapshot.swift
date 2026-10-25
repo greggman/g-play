@@ -8,10 +8,12 @@ struct LibrarySnapshot: Sendable {
   let artists: [Artist.ID: Artist]
   let systemPlaylists: [Playlist]
 
-  let tracksByTitle: [Track.ID]
-  let tracksByDateAdded: [Track.ID]
-  let albumsByTitle: [Album.ID]
-  let artistsByName: [Artist.ID]
+  // Sorted lists hold values, not IDs, so a list's ForEach makes exactly one
+  // row per element and SwiftUI only has to build the visible rows.
+  let tracksByTitle: [Track]
+  let tracksByDateAdded: [Track]
+  let albumsByTitle: [Album]
+  let artistsByName: [Artist]
   let searchIndex: SearchIndex
 
   static let empty = LibrarySnapshot(tracks: [], systemPlaylists: [])
@@ -57,10 +59,10 @@ struct LibrarySnapshot: Sendable {
     }
     self.artists = artists
 
-    tracksByTitle = Self.sorted(trackList, id: \.id, name: \.title)
-    tracksByDateAdded = trackList.sorted { $0.dateAdded > $1.dateAdded }.map(\.id)
-    albumsByTitle = Self.sorted(Array(albums.values), id: \.id, name: \.title)
-    artistsByName = Self.sorted(Array(artists.values), id: \.id, name: \.name)
+    tracksByTitle = Self.sorted(trackList, name: \.title)
+    tracksByDateAdded = trackList.sorted { $0.dateAdded > $1.dateAdded }
+    albumsByTitle = Self.sorted(Array(albums.values), name: \.title)
+    artistsByName = Self.sorted(Array(artists.values), name: \.name)
     searchIndex = SearchIndex(
       tracks: trackList, albums: Array(albums.values), artists: Array(artists.values))
   }
@@ -72,6 +74,10 @@ struct LibrarySnapshot: Sendable {
   }
 
   /// Every track by an artist: albums by title, each in track order.
+  func tracks(forArtist id: Artist.ID) -> [Track] {
+    tracks(trackIDs(forArtist: id))
+  }
+
   func trackIDs(forArtist id: Artist.ID) -> [Track.ID] {
     guard let artist = artists[id] else { return [] }
     return artist.albumIDs.flatMap { albumID in
@@ -85,11 +91,11 @@ struct LibrarySnapshot: Sendable {
 
   // MARK: - Private
 
-  /// IDs ordered by `SortKey` of their names.
-  private static func sorted<T, ID>(_ items: [T], id: (T) -> ID, name: (T) -> String) -> [ID] {
+  /// Items ordered by `SortKey` of their names.
+  private static func sorted<T>(_ items: [T], name: (T) -> String) -> [T] {
     items
-      .map { (key: SortKey.make(name($0)), id: id($0)) }
+      .map { (key: SortKey.make(name($0)), item: $0) }
       .sorted { SortKey.less($0.key, $1.key) }
-      .map(\.id)
+      .map(\.item)
   }
 }

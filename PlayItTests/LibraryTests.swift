@@ -86,7 +86,7 @@ struct LibrarySnapshotTests {
     systemPlaylists: [Playlist(id: .system(1), name: "P", trackIDs: [3, 99, 1])])
 
   @Test func tracksSortedByTitle() {
-    #expect(snapshot.tracksByTitle == [4, 2, 3, 1])
+    #expect(snapshot.tracksByTitle.map(\.id) == [4, 2, 3, 1])
   }
 
   @Test func albumsInTrackOrder() {
@@ -96,11 +96,11 @@ struct LibrarySnapshotTests {
   @Test func artistAlbumsAndTracks() {
     #expect(snapshot.artists[10]?.albumIDs == [300, 100])
     #expect(snapshot.trackIDs(forArtist: 10) == [4, 2, 1])
-    #expect(snapshot.artistsByName == [10, 20])
+    #expect(snapshot.artistsByName.map(\.id) == [10, 20])
   }
 
   @Test func dateAddedNewestFirst() {
-    #expect(snapshot.tracksByDateAdded.first == 3)
+    #expect(snapshot.tracksByDateAdded.first?.id == 3)
   }
 
   @Test func playlistsDropMissingTracks() {

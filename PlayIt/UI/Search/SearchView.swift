@@ -13,32 +13,26 @@ struct SearchView: View {
     List {
       if !results.artists.isEmpty {
         Section("Artists") {
-          ForEach(results.artists.prefix(Self.previewCount), id: \.self) { id in
-            if let artist = model.artist(id) {
-              NavigationLink(value: Route.artist(id)) { ArtistRow(artist: artist) }
-                .mediaActions(.artist(id))
-            }
+          ForEach(results.artists.prefix(Self.previewCount).compactMap(model.artist)) { artist in
+            NavigationLink(value: Route.artist(artist.id)) { ArtistRow(artist: artist) }
+              .mediaActions(.artist(artist.id))
           }
         }
       }
       if !results.albums.isEmpty {
         Section("Albums") {
-          ForEach(results.albums.prefix(Self.previewCount * 2), id: \.self) { id in
-            if let album = model.album(id) {
-              NavigationLink(value: Route.album(id)) { AlbumRow(album: album) }
-                .mediaActions(.album(id))
-            }
+          ForEach(results.albums.prefix(Self.previewCount * 2).compactMap(model.album)) { album in
+            NavigationLink(value: Route.album(album.id)) { AlbumRow(album: album) }
+              .mediaActions(.album(album.id))
           }
         }
       }
       if !results.tracks.isEmpty {
         Section("Songs") {
-          ForEach(results.tracks, id: \.self) { id in
-            if let track = model.track(id) {
-              Button { model.play(.track(id)) } label: { TrackRow(track: track, detail: track.album) }
-                .buttonStyle(.plain)
-                .mediaActions(.track(id))
-            }
+          ForEach(results.tracks.compactMap(model.track)) { track in
+            Button { model.play(.track(track.id)) } label: { TrackRow(track: track, detail: track.album) }
+              .buttonStyle(.plain)
+              .mediaActions(.track(track.id))
           }
         }
       }

@@ -30,7 +30,9 @@ final class FixtureMusicLibrary: MusicLibrary {
 
   func artwork(for trackID: Track.ID, size: CGFloat) async -> UIImage? {
     guard let info = artworkColors[trackID] else { return nil }
-    return Self.renderArtwork(title: info.album, hue: info.hue, size: size)
+    return await Task.detached(priority: .userInitiated) {
+      Self.renderArtwork(title: info.album, hue: info.hue, size: size)
+    }.value
   }
 
   func changes() -> AsyncStream<Void> {

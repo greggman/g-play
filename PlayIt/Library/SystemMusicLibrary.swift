@@ -38,7 +38,19 @@ final class SystemMusicLibrary: MusicLibrary {
   }
 
   func artwork(for trackID: Track.ID, size: CGFloat) async -> UIImage? {
-    items[trackID]?.artwork?.image(at: CGSize(width: size, height: size))
+    guard let artwork = items[trackID]?.artwork else { return nil }
+    let box = ArtworkBox(artwork: artwork)
+    // Fetching and decoding artwork is slow; keep it off the main thread so
+    // scrolling doesn't stall.
+    return await Task.detached(priority: .userInitiated) {
+      let size = CGSize(width: size, height: size)
+      let image = box.artwork.image(at: size)
+      return image?.preparingThumbnail(of: size) ?? image
+    }.value
+  }
+
+  private struct ArtworkBox: @unchecked Sendable {
+    let artwork: MPMediaItemArtwork
   }
 
   func changes() -> AsyncStream<Void> {

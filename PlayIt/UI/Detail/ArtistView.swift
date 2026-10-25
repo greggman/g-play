@@ -12,22 +12,18 @@ struct ArtistView: View {
             .listRowSeparator(.hidden)
         }
         Section("Albums") {
-          ForEach(artist.albumIDs, id: \.self) { albumID in
-            if let album = model.album(albumID) {
-              NavigationLink(value: Route.album(albumID)) { AlbumRow(album: album) }
-                .mediaActions(.album(albumID))
-            }
+          ForEach(artist.albumIDs.compactMap(model.album)) { album in
+            NavigationLink(value: Route.album(album.id)) { AlbumRow(album: album) }
+              .mediaActions(.album(album.id))
           }
         }
         Section("Songs") {
-          ForEach(model.snapshot.trackIDs(forArtist: id), id: \.self) { trackID in
-            if let track = model.track(trackID) {
-              Button { model.play(.artist(id), startingAt: trackID) } label: {
-                TrackRow(track: track, detail: track.album)
-              }
-              .buttonStyle(.plain)
-              .mediaActions(.track(trackID), playContext: .artist(id))
+          ForEach(model.snapshot.tracks(forArtist: id)) { track in
+            Button { model.play(.artist(id), startingAt: track.id) } label: {
+              TrackRow(track: track, detail: track.album)
             }
+            .buttonStyle(.plain)
+            .mediaActions(.track(track.id), playContext: .artist(id))
           }
         }
       }
