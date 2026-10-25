@@ -22,6 +22,8 @@ struct TrackRow: View {
   var detail: String?
 
   @Environment(PlayerController.self) private var player
+  @Environment(Router.self) private var router
+  @ScaledMetric(relativeTo: .body) private var artworkSize = 44
 
   var body: some View {
     HStack(spacing: 12) {
@@ -31,7 +33,7 @@ struct TrackRow: View {
           .foregroundStyle(.secondary)
           .frame(minWidth: 24, alignment: .trailing)
       } else if showsArtwork {
-        ArtworkView(trackID: track.id, size: 44)
+        ArtworkView(trackID: track.id, size: min(artworkSize, 88))
       }
       VStack(alignment: .leading, spacing: 2) {
         Text(track.title)
@@ -57,6 +59,8 @@ struct TrackRow: View {
     }
     .contentShape(Rectangle())
     .accessibilityElement(children: .combine)
+    // The artist link isn't reachable inside the combined element.
+    .accessibilityAction(named: "Search Artist") { router.showSearch(forArtist: track.artist) }
     .accessibilityIdentifier("TrackRow")
   }
 
@@ -65,10 +69,11 @@ struct TrackRow: View {
 
 struct AlbumRow: View {
   let album: Album
+  @ScaledMetric(relativeTo: .body) private var artworkSize = 56
 
   var body: some View {
     HStack(spacing: 12) {
-      ArtworkView(trackID: album.artworkTrackID, size: 56)
+      ArtworkView(trackID: album.artworkTrackID, size: min(artworkSize, 112))
       VStack(alignment: .leading, spacing: 2) {
         Text(album.title).lineLimit(1)
         Text(album.artist)
@@ -83,10 +88,11 @@ struct AlbumRow: View {
 
 struct ArtistRow: View {
   let artist: Artist
+  @ScaledMetric(relativeTo: .body) private var artworkSize = 44
 
   var body: some View {
     HStack(spacing: 12) {
-      ArtworkView(trackID: artist.artworkTrackID, size: 44, cornerRadius: 22)
+      ArtworkView(trackID: artist.artworkTrackID, size: min(artworkSize, 88), cornerRadius: min(artworkSize, 88) / 2)
       VStack(alignment: .leading, spacing: 2) {
         Text(artist.name).lineLimit(1)
         Text(summary)
@@ -98,17 +104,18 @@ struct ArtistRow: View {
   }
 
   private var summary: String {
-    let albums = artist.albumIDs.count
-    return String(localized: "\(albums) albums, \(artist.trackCount) songs")
+    [String(localized: "\(artist.albumIDs.count) albums"), String(localized: "\(artist.trackCount) songs")]
+      .formatted(.list(type: .and, width: .narrow))
   }
 }
 
 struct PlaylistRow: View {
   let playlist: Playlist
+  @ScaledMetric(relativeTo: .body) private var artworkSize = 56
 
   var body: some View {
     HStack(spacing: 12) {
-      ArtworkView(trackID: playlist.trackIDs.first, size: 56)
+      ArtworkView(trackID: playlist.trackIDs.first, size: min(artworkSize, 112))
       VStack(alignment: .leading, spacing: 2) {
         Text(playlist.name).lineLimit(1)
         Text("\(playlist.trackIDs.count) songs")

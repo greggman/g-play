@@ -1,6 +1,121 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld": {},
+    "%lld albums": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld album"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld albums"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld songs": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld song"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld songs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Access to your music library is restricted on this device.": {},
+    "Add songs with “Add to Playlist” from any song, album or artist's menu.": {},
+    "Add to Playlist": {},
+    "Added": {},
+    "Album Not Found": {},
+    "Album artwork": {},
+    "Albums": {},
+    "Artist Not Found": {},
+    "Artists": {},
+    "Cancel": {},
+    "Choose something from your library, or Shuffle All.": {},
+    "Clear Up Next": {},
+    "Close": {},
+    "Copy Album Name": {},
+    "Copy Artist Name": {},
+    "Copy Playlist Name": {},
+    "Copy Track Name": {},
+    "Create": {},
+    "Delete Playlist": {},
+    "Delete “%@”?": {},
+    "Duplicate as Play-It Playlist": {},
+    "Find songs by title, artist or album.": {},
+    "Go to Album": {},
+    "Library": {},
+    "Loading Library…": {},
+    "More": {},
+    "Music Playlists": {},
+    "Name": {},
+    "New Playlist": {},
+    "New Playlist…": {},
+    "Next Track": {},
+    "No Access to Music": {},
+    "No Music": {},
+    "Nothing Playing": {},
+    "Now Playing": {},
+    "Open Now Playing": {},
+    "Open Settings": {},
+    "Pause": {},
+    "Play": {},
+    "Play Later": {},
+    "Play Next": {},
+    "Play Now": {},
+    "Play-It Playlists": {},
+    "Play-It needs access to your music library to play it. You can allow access in Settings.": {},
+    "Playback position": {},
+    "Playing from %@": {},
+    "Playlist Not Found": {},
+    "Playlists": {},
+    "Playlists from the Music app can't be edited here. Duplicate one to make an editable copy.": {},
+    "Plays every song, favoring ones you haven't heard recently": {},
+    "Previous Track": {},
+    "Queue": {},
+    "Rename": {},
+    "Rename Playlist": {},
+    "Search": {},
+    "Search Artist": {},
+    "Search Your Library": {},
+    "Shows search results for this artist": {},
+    "Shows the album": {},
+    "Shuffle All": {},
+    "Songs": {},
+    "Songs you add to the Music app appear here.": {},
+    "Songs, Albums, Artists": {},
+    "Sort": {},
+    "Unknown Album": {},
+    "Unknown Artist": {},
+    "Unknown Title": {},
+    "Untitled Playlist": {},
+    "Up Next": {},
+    "· %@": {}
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

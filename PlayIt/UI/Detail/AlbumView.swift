@@ -50,7 +50,7 @@ struct AlbumView: View {
   private func summary(_ album: Album) -> String {
     let seconds = model.snapshot.tracks(album.trackIDs).reduce(0) { $0 + $1.duration }
     let duration = Duration.seconds(seconds).formatted(.units(allowed: [.hours, .minutes], width: .wide))
-    return String(localized: "\(album.trackIDs.count) songs, \(duration)")
+    return [String(localized: "\(album.trackIDs.count) songs"), duration].formatted(.list(type: .and, width: .narrow))
   }
 }
 
@@ -58,9 +58,12 @@ struct AlbumView: View {
 struct PlayButtons: View {
   let ref: MediaRef
   @Environment(AppModel.self) private var model
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
   var body: some View {
-    HStack {
+    // Stack the buttons when text is too large to fit them side by side.
+    let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout()) : AnyLayout(HStackLayout())
+    layout {
       Button { model.play(ref) } label: {
         Label("Play", systemImage: "play.fill").frame(maxWidth: .infinity)
       }
@@ -73,5 +76,7 @@ struct PlayButtons: View {
       .buttonStyle(.bordered)
     }
     .controlSize(.large)
+    .frame(maxWidth: 500)
+    .frame(maxWidth: .infinity)
   }
 }

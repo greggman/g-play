@@ -1,4 +1,5 @@
 import Observation
+import os
 import SwiftUI
 
 /// Something a queue action can apply to: any search result or list row.
@@ -86,9 +87,13 @@ final class AppModel {
   }
 
   private func reload() async {
+    let start = ContinuousClock.now
     snapshot = await library.loadSnapshot()
     player.libraryDidLoad(snapshot)
+    Self.log.info("Loaded \(self.snapshot.tracks.count) tracks in \(ContinuousClock.now - start)")
   }
+
+  private static let log = Logger(subsystem: "com.greggman.playit", category: "library")
 
   // MARK: - Resolving
 

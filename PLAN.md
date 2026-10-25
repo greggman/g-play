@@ -236,7 +236,7 @@ lock screen shows artwork and controls that work, and relaunch restores state.
 
 * Accessibility: VoiceOver labels on all controls, Dynamic Type, sufficient
   contrast, accessibility actions for queue operations.
-* Dark mode, iPad-safe layouts, landscape.
+* Dark mode, landscape. iPhone only (no iPad target).
 * Large-library performance: test fixture with 20k tracks; lazy lists, index
   built off the main actor, artwork loaded on demand.
 * Library change notifications refresh views without losing the queue.
