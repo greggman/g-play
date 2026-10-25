@@ -13,7 +13,7 @@ struct AuthorizationView: View {
       case .restricted:
         Text("Access to your music library is restricted on this device.")
       default:
-        Text("Play-It needs access to your music library to play it. You can allow access in Settings.")
+        Text("g-play needs access to your music library to play it. You can allow access in Settings.")
       }
     } actions: {
       if status != .restricted {

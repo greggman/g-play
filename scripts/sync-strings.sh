@@ -3,4 +3,4 @@
 # automatically when building in the IDE).
 cd "$(dirname "$0")/.."
 xcrun xcstringstool sync PlayIt/Resources/Localizable.xcstrings \
-  --stringsdata $(find build/Build/Intermediates.noindex/PlayIt.build -name "*.stringsdata")
+  --stringsdata $(find build/Build/Intermediates.noindex/PlayIt.build/Debug-iphonesimulator -name "*.stringsdata")

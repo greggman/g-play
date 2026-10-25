@@ -1,4 +1,4 @@
-# Play-It
+# g-play
 
 An iPhone music player for the device's Music library. See [DESIGN.md](DESIGN.md) and [PLAN.md](PLAN.md).
 

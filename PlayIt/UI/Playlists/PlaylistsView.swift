@@ -15,7 +15,7 @@ struct PlaylistsView: View {
           for index in offsets { model.delete(model.appPlaylists[index].id) }
         }
       } header: {
-        Text("Play-It Playlists")
+        Text("g-play Playlists")
       }
       if !model.snapshot.systemPlaylists.isEmpty {
         Section {
@@ -82,7 +82,7 @@ struct PlaylistView: View {
               }
               Button("Delete Playlist", systemImage: "trash", role: .destructive) { isConfirmingDelete = true }
             } else {
-              Button("Duplicate as Play-It Playlist", systemImage: "plus.square.on.square") {
+              Button("Duplicate as g-play Playlist", systemImage: "plus.square.on.square") {
                 if let copy = model.duplicate(id) { router.show(.playlist(copy)) }
               }
             }

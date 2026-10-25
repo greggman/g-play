@@ -22,10 +22,10 @@ targets:
     info:
       path: PlayIt/Info.plist
       properties:
-        CFBundleDisplayName: Play-It
+        CFBundleDisplayName: g-play
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        NSAppleMusicUsageDescription: Play-It plays and searches the music in your library.
+        NSAppleMusicUsageDescription: g-play plays and searches the music in your library.
         UIBackgroundModes: [audio]
         UILaunchScreen: {}
         UIApplicationSceneManifest:
