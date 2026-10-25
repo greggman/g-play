@@ -224,7 +224,7 @@ lock screen shows artwork and controls that work, and relaunch restores state.
 * Creating and editing playlists. `MediaPlayer` can only *create* system
   playlists and *append* to them: there's no public API to remove, reorder,
   rename or delete. So:
-  * Play-It playlists are stored by the app (persistent IDs, SwiftData) and
+  * Play-It playlists are stored by the app (persistent IDs, JSON in Application Support) and
     support full editing: create, rename, add, remove, reorder, delete.
   * System (Music app) playlists are shown read-only, with a "Duplicate as
     Play-It playlist" action to make an editable copy.
@@ -266,3 +266,33 @@ lock screen shows artwork and controls that work, and relaunch restores state.
 6. Minimum iOS version is 18.
 7. Possible playback gaps are deferred until feature complete; the engine can
    be swapped for `AVQueuePlayer` later.
+
+## Status (2026-10-25)
+
+All phases are implemented. On the Simulator, 44 unit tests and 7 UI
+tests pass (`scripts/build.sh test`).
+
+Where the implementation differs from the plan above:
+
+* **Persistence** is JSON files (`StateStore`), not SwiftData. It's simpler
+  for two small documents and easy to test.
+* **Section index** uses SwiftUI's built-in index, which needs iOS 26. On
+  iOS 18–25 the lists have section headers but no index strip.
+* **Mini player** uses the tab bar's bottom accessory on iOS 26.1+, and a
+  bar inset above the tab bar on earlier versions.
+* **Big lists** stayed in SwiftUI. A 20,000-track library loads in about
+  0.4 s (Debug, Simulator) and scrolls smoothly. Hitch metrics are only
+  reported on a device; `PerformanceTests` measures them there.
+* **String Catalog** fills in when built in Xcode; from the command line,
+  run `scripts/sync-strings.sh` after a build.
+* **Lock screen** controls and Now Playing info are published by
+  `NowPlayingCenter` for the Simulator engine. Background playback is
+  covered by a UI test; the lock screen itself was not checked.
+
+Needs a real device (the Simulator can't do these):
+
+* Reading the real Music library, including Apple Music and iCloud tracks.
+* `SystemPlaybackEngine`: queue updates through `perform(queueTransaction:)`,
+  catching up after the app was suspended, and the lock screen.
+* Possible gaps when the queue changes (deferred, as decided).
+
