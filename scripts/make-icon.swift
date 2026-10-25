@@ -46,7 +46,7 @@ c.addPath(ring); c.clip(using: .evenOdd)
 // end, in thin wedges.
 let center = CGPoint(x: 128, y: 128)
 let startAngle = atan2(-160.0, 84.0)  // toward the wedge's upper corner
-let endAngle = atan2(126.75 - 128, 226.25 - 128) - 2 * CGFloat.pi
+let endAngle = -2 * CGFloat.pi  // the cut along y = 128, at the right
 let slices = 720
 for i in 0..<slices {
   let t0 = CGFloat(i) / CGFloat(slices), t1 = CGFloat(i + 1) / CGFloat(slices)
@@ -59,10 +59,14 @@ for i in 0..<slices {
   c.setFillColor(mix(t0)); c.fillPath()
 }
 c.restoreGState()
-// Round end.
-let dotR: CGFloat = 16 * 1.39062
+// Round end: a circle exactly as wide as the ring where it's cut (along
+// y = 128 on the right), centered on that cut.
+let outerX = 128 + 120.5
+let innerX = 128 + (77.0 * 77.0 - 1).squareRoot()  // inner circle is centered at (128, 129)
+let dotR = CGFloat(outerX - innerX) / 2
+let dotX = CGFloat(outerX + innerX) / 2
 c.setFillColor(mix(1))
-c.fillEllipse(in: CGRect(x: 226.25 - dotR, y: 126.75 - dotR, width: 2 * dotR, height: 2 * dotR))
+c.fillEllipse(in: CGRect(x: dotX - dotR, y: 128 - dotR, width: 2 * dotR, height: 2 * dotR))
 // Play triangle.
 func tf(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: -0.836207 * y + 289.034, y: 0.836207 * x - 28.0345) }
 c.move(to: tf(186, 128)); c.addLine(to: tf(244, 224)); c.addLine(to: tf(128, 224)); c.closePath()
