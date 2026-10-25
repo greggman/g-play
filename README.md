@@ -18,6 +18,7 @@ Or from the command line:
 scripts/build.sh            # build for the Simulator
 scripts/build.sh test       # run unit and UI tests
 scripts/run-sim.sh          # install, launch and screenshot on the Simulator
+scripts/install-device.sh   # build, install and launch on a connected iPhone
 ```
 
 ## The Simulator
