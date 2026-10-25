@@ -1,3 +1,5 @@
+<img src="PlayIt/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png" width="128" alt="g-play icon">
+
 # g-play
 
 An iPhone music player for the device's Music library. See [DESIGN.md](DESIGN.md) and [PLAN.md](PLAN.md).
