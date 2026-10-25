@@ -43,6 +43,25 @@ final class PlayItUITests: XCTestCase {
     XCTAssertEqual(playPause.label, "Play")
   }
 
+  /// Without background audio the player would pause when the app leaves the
+  /// foreground.
+  func testKeepsPlayingInBackground() {
+    app.buttons["Shuffle All"].tap()
+    let mini = app.descendants(matching: .any).matching(identifier: "MiniPlayer").firstMatch
+    XCTAssertTrue(mini.waitForExistence(timeout: 5))
+    XCUIDevice.shared.press(.home)
+    sleep(8)
+    app.activate()
+    mini.tap()
+    let slider = app.sliders["Playback position"]
+    XCTAssertTrue(slider.waitForExistence(timeout: 5))
+    XCTAssertEqual(app.buttons["NowPlayingPlayPause"].label, "Pause")
+    // Elapsed time is shown as m:ss; at least 8 seconds have passed.
+    let elapsed = (slider.value as? String ?? "").split(separator: ":").compactMap { Int($0) }
+    XCTAssertEqual(elapsed.count, 2)
+    XCTAssertGreaterThanOrEqual(elapsed[0] * 60 + elapsed[1], 8)
+  }
+
   func testLongPressAlwaysOffersCopy() {
     longPress(firstTrackRow)
     XCTAssertTrue(app.buttons["Copy Track Name"].waitForExistence(timeout: 5))
