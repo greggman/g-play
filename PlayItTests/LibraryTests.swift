@@ -158,16 +158,16 @@ struct StateStoreTests {
 struct AlbumGroupingTests {
   private func track(
     _ id: Track.ID, album: String?, artist: String? = "Bit Shifter", albumArtist: String? = nil,
-    compilation: Bool = false
+    compilation: Bool = false, number: Int = 0
   ) -> Track {
     Track.fromLibrary(
       id: id, title: "Song \(id)", artist: artist, artistID: 7, album: album,
-      albumArtist: albumArtist, isCompilation: compilation, trackNumber: 0, discNumber: 1, duration: 100,
+      albumArtist: albumArtist, isCompilation: compilation, trackNumber: number, discNumber: 1, duration: 100,
       dateAdded: .distantPast, lastPlayedDate: nil, playCount: 0)
   }
 
   private func albums(_ tracks: [Track]) -> [Album] {
-    LibrarySnapshot(tracks: tracks, systemPlaylists: []).albumsByTitle
+    LibrarySnapshot(tracks: Track.groupAlbums(tracks), systemPlaylists: []).albumsByTitle
   }
 
   /// Songs with no album name form one "Unknown Album" per artist, listed
@@ -196,12 +196,38 @@ struct AlbumGroupingTests {
     #expect(result[0].trackIDs.count == 3)
   }
 
-  @Test func sameNameDifferentArtistsStaySeparate() {
+  /// Soundtracks: different artists per track, no album artist, one album.
+  @Test func soundtrackStaysTogether() {
     let result = albums([
-      track(1, album: "Greatest Hits", artist: "Queen"),
-      track(2, album: "Greatest Hits", artist: "ABBA"),
+      track(1, album: "Pulp Fiction", artist: "Dick Dale", number: 1),
+      track(2, album: "Pulp Fiction", artist: "Kool & the Gang", number: 2),
+      track(3, album: "Pulp Fiction", artist: "Al Green", number: 3),
+      track(4, album: "Pulp Fiction", artist: "Unnumbered"),
+    ])
+    #expect(result.count == 1)
+    #expect(result[0].artist == Track.variousArtists)
+  }
+
+  /// Two different albums with the same name: the same track numbers by
+  /// different artists.
+  @Test func sameNameClashingTrackNumbersSplitByArtist() {
+    let result = albums([
+      track(1, album: "Greatest Hits", artist: "Queen", number: 1),
+      track(2, album: "Greatest Hits", artist: "Queen", number: 2),
+      track(3, album: "Greatest Hits", artist: "ABBA", number: 1),
     ])
     #expect(result.count == 2)
+    #expect(Set(result.map(\.artist)) == ["Queen", "ABBA"])
+  }
+
+  @Test func sameNameDifferentAlbumArtistsStaySeparate() {
+    let result = albums([
+      track(1, album: "Greatest Hits", artist: "Queen", albumArtist: "Queen"),
+      track(2, album: "Greatest Hits", artist: "ABBA", albumArtist: "ABBA"),
+      track(3, album: "Greatest Hits", artist: "ABBA"),
+    ])
+    #expect(result.count == 2)
+    #expect(result.first { $0.artist == "ABBA" }?.trackIDs.count == 2)
   }
 
   @Test func compilationsGroupByName() {

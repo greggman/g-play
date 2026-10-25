@@ -22,7 +22,7 @@ final class SystemMusicLibrary: MusicLibrary {
   func loadSnapshot() async -> LibrarySnapshot {
     let loaded = await Task.detached(priority: .userInitiated) { () -> Loaded in
       let mediaItems = MPMediaQuery.songs().items ?? []
-      let tracks = mediaItems.map(Self.track)
+      let tracks = Track.groupAlbums(mediaItems.map(Self.track))
       let playlists = (MPMediaQuery.playlists().collections as? [MPMediaPlaylist] ?? []).map {
         Playlist(id: .system($0.persistentID), name: $0.name ?? "", trackIDs: $0.items.map(\.persistentID))
       }

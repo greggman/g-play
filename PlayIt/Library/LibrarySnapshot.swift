@@ -39,7 +39,10 @@ struct LibrarySnapshot: Sendable {
         ($0.discNumber, $0.trackNumber, $0.title) < ($1.discNumber, $1.trackNumber, $1.title)
       }
       let first = ordered[0]
-      let artist = first.albumArtist.isEmpty ? first.artist : first.albumArtist
+      let albumArtist = ordered.first { !$0.albumArtist.isEmpty }?.albumArtist
+      let artists = Set(ordered.map(\.artist))
+      let artist = albumArtist
+        ?? (artists.count > 1 && first.album != Track.unknownAlbum ? Track.variousArtists : first.artist)
       albums[albumID] = Album(
         id: albumID, title: first.album, artist: artist, artistID: first.artistID,
         trackIDs: ordered.map(\.id), artworkTrackID: first.id)

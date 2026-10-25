@@ -10,7 +10,8 @@ struct Track: Identifiable, Hashable, Sendable, Codable {
   let artist: String
   let artistID: UInt64
   let album: String
-  let albumID: UInt64
+  /// See `Track.groupAlbums`.
+  var albumID: UInt64
   let albumArtist: String
   let trackNumber: Int
   let discNumber: Int
@@ -26,13 +27,8 @@ extension Track {
   static let unknownAlbum = String(localized: "Unknown Album")
   static let variousArtists = String(localized: "Various Artists")
 
-  /// Builds a track from library metadata, filling in missing names.
-  ///
-  /// Albums are grouped by name, not by the library's album ID, which can
-  /// split one album into several (and gives every song with no album name
-  /// its own ID). Songs with the same album name are one album, unless
-  /// they're by different album artists. Compilations group by name alone.
-  /// Songs with no album name form one "Unknown Album" per artist.
+  /// Builds a track from library metadata, filling in missing names. Call
+  /// `groupAlbums` on the results to finish assigning album IDs.
   static func fromLibrary(
     id: ID, title: String?, artist: String?, artistID: UInt64,
     album: String?, albumArtist: String?, isCompilation: Bool,
@@ -48,7 +44,8 @@ extension Track {
       artist: artist,
       artistID: artistID,
       album: album ?? unknownAlbum,
-      albumID: albumID(name: album ?? "", artist: albumArtist ?? artist),
+      // Songs with no album name: one "Unknown Album" per artist.
+      albumID: albumID(name: album ?? "", artist: album == nil ? artist : ""),
       albumArtist: albumArtist ?? "",
       trackNumber: trackNumber,
       discNumber: discNumber,
@@ -56,6 +53,50 @@ extension Track {
       dateAdded: dateAdded,
       lastPlayedDate: lastPlayedDate,
       playCount: playCount)
+  }
+
+  /// Assigns album IDs by album name rather than the library's album ID,
+  /// which can split one album into several and gives every song with no
+  /// album name its own ID.
+  ///
+  /// Songs with the same album name are one album, even when tracks are by
+  /// different artists, as on most soundtracks, and even when only some
+  /// tracks have an album artist. A name is split only when there's
+  /// evidence of different albums:
+  /// - more than one album artist: split by album artist (tracks without
+  ///   one join the album artist matching their artist, if any), or
+  /// - the same disc and track number by two different artists (two
+  ///   "Greatest Hits"): split by album artist, else artist.
+  static func groupAlbums(_ tracks: [Track]) -> [Track] {
+    var tracks = tracks
+    let groups = Dictionary(grouping: tracks.indices, by: { tracks[$0].albumID })
+    for indices in groups.values where tracks[indices[0]].album != unknownAlbum {
+      let albumArtists = Set(indices.map { SortKey.fold(tracks[$0].albumArtist) }.filter { !$0.isEmpty })
+      let splitArtist: (Track) -> String
+      if albumArtists.count > 1 {
+        splitArtist = { track in
+          if !track.albumArtist.isEmpty { return track.albumArtist }
+          return albumArtists.contains(SortKey.fold(track.artist)) ? track.artist : ""
+        }
+      } else if hasTrackNumberClash(indices.map { tracks[$0] }) {
+        splitArtist = { $0.albumArtist.isEmpty ? $0.artist : $0.albumArtist }
+      } else {
+        continue
+      }
+      for i in indices {
+        tracks[i].albumID = albumID(name: tracks[i].album, artist: splitArtist(tracks[i]))
+      }
+    }
+    return tracks
+  }
+
+  /// Whether the same disc and track number appears under different artists.
+  private static func hasTrackNumberClash(_ tracks: [Track]) -> Bool {
+    var artistsByPosition: [String: Set<String>] = [:]
+    for track in tracks where track.trackNumber > 0 {
+      artistsByPosition["\(track.discNumber)-\(track.trackNumber)", default: []].insert(SortKey.fold(track.artist))
+    }
+    return artistsByPosition.values.contains { $0.count > 1 }
   }
 
   /// A stable ID for an album name and artist (FNV-1a hash), ignoring case
