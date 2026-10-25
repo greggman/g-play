@@ -1,0 +1,81 @@
+name: PlayIt
+options:
+  bundleIdPrefix: com.greggman
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+targets:
+  PlayIt:
+    type: application
+    platform: iOS
+    sources:
+      - PlayIt
+    info:
+      path: PlayIt/Info.plist
+      properties:
+        CFBundleDisplayName: Play-It
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSAppleMusicUsageDescription: Play-It plays and searches the music in your library.
+        UIBackgroundModes: [audio]
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.greggman.playit
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES
+  PlayItTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - PlayItTests
+    dependencies:
+      - target: PlayIt
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.greggman.playit.tests
+        GENERATE_INFOPLIST_FILE: YES
+  PlayItUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - PlayItUITests
+    dependencies:
+      - target: PlayIt
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.greggman.playit.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: PlayIt
+schemes:
+  PlayIt:
+    build:
+      targets:
+        PlayIt: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - PlayItTests
+        - PlayItUITests
