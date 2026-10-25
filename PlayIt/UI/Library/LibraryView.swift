@@ -42,14 +42,13 @@ struct LibraryView: View {
       }
 
       switch sort {
-      case .songs: SongSections(sections: model.snapshot.tracksByTitle)
-      case .albums: AlbumSections(sections: model.snapshot.albumsByTitle)
-      case .artists: ArtistSections(sections: model.snapshot.artistsByName)
+      case .songs: SongList(ids: model.snapshot.tracksByTitle)
+      case .albums: AlbumList(ids: model.snapshot.albumsByTitle)
+      case .artists: ArtistList(ids: model.snapshot.artistsByName)
       case .recentlyAdded: RecentlyAddedSection(trackIDs: model.snapshot.tracksByDateAdded)
       }
     }
     .listStyle(.plain)
-    .showsSectionIndex()
     .navigationTitle("Library")
     .overlay {
       if model.snapshot.isEmpty {
@@ -61,60 +60,51 @@ struct LibraryView: View {
   }
 }
 
-private struct SongSections: View {
-  let sections: [IndexedSection<Track.ID>]
+private struct SongList: View {
+  let ids: [Track.ID]
   @Environment(AppModel.self) private var model
 
   var body: some View {
-    ForEach(sections) { section in
-      Section(section.letter) {
-        ForEach(section.ids, id: \.self) { id in
-          if let track = model.track(id) {
-            Button { model.play(.track(id)) } label: { TrackRow(track: track) }
-              .buttonStyle(.plain)
-              .mediaActions(.track(id))
-          }
+    Section {
+      ForEach(ids, id: \.self) { id in
+        if let track = model.track(id) {
+          Button { model.play(.track(id)) } label: { TrackRow(track: track) }
+            .buttonStyle(.plain)
+            .mediaActions(.track(id))
         }
       }
-      .sectionIndex(section.letter)
     }
   }
 }
 
-private struct AlbumSections: View {
-  let sections: [IndexedSection<Album.ID>]
+private struct AlbumList: View {
+  let ids: [Album.ID]
   @Environment(AppModel.self) private var model
 
   var body: some View {
-    ForEach(sections) { section in
-      Section(section.letter) {
-        ForEach(section.ids, id: \.self) { id in
-          if let album = model.album(id) {
-            NavigationLink(value: Route.album(id)) { AlbumRow(album: album) }
-              .mediaActions(.album(id))
-          }
+    Section {
+      ForEach(ids, id: \.self) { id in
+        if let album = model.album(id) {
+          NavigationLink(value: Route.album(id)) { AlbumRow(album: album) }
+            .mediaActions(.album(id))
         }
       }
-      .sectionIndex(section.letter)
     }
   }
 }
 
-private struct ArtistSections: View {
-  let sections: [IndexedSection<Artist.ID>]
+private struct ArtistList: View {
+  let ids: [Artist.ID]
   @Environment(AppModel.self) private var model
 
   var body: some View {
-    ForEach(sections) { section in
-      Section(section.letter) {
-        ForEach(section.ids, id: \.self) { id in
-          if let artist = model.artist(id) {
-            NavigationLink(value: Route.artist(id)) { ArtistRow(artist: artist) }
-              .mediaActions(.artist(id))
-          }
+    Section {
+      ForEach(ids, id: \.self) { id in
+        if let artist = model.artist(id) {
+          NavigationLink(value: Route.artist(id)) { ArtistRow(artist: artist) }
+            .mediaActions(.artist(id))
         }
       }
-      .sectionIndex(section.letter)
     }
   }
 }

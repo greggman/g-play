@@ -131,6 +131,7 @@ private struct MediaActionsModifier: ViewModifier {
 
   func body(content: Content) -> some View {
     content
+      .compactRowInsets()
       .contextMenu { MediaMenu(ref: ref, playContext: playContext) }
       .swipeActions(edge: .leading) {
         Button("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward") { model.playNext(ref) }

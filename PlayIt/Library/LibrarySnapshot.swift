@@ -1,12 +1,5 @@
 import Foundation
 
-/// A group of rows under one section index letter.
-struct IndexedSection<ID: Hashable & Sendable>: Identifiable, Sendable {
-  let letter: String
-  let ids: [ID]
-  var id: String { letter }
-}
-
 /// An immutable, fully indexed view of the library. Built off the main actor
 /// whenever the library changes.
 struct LibrarySnapshot: Sendable {
@@ -15,10 +8,10 @@ struct LibrarySnapshot: Sendable {
   let artists: [Artist.ID: Artist]
   let systemPlaylists: [Playlist]
 
-  let tracksByTitle: [IndexedSection<Track.ID>]
+  let tracksByTitle: [Track.ID]
   let tracksByDateAdded: [Track.ID]
-  let albumsByTitle: [IndexedSection<Album.ID>]
-  let artistsByName: [IndexedSection<Artist.ID>]
+  let albumsByTitle: [Album.ID]
+  let artistsByName: [Artist.ID]
   let searchIndex: SearchIndex
 
   static let empty = LibrarySnapshot(tracks: [], systemPlaylists: [])
@@ -64,10 +57,10 @@ struct LibrarySnapshot: Sendable {
     }
     self.artists = artists
 
-    tracksByTitle = Self.sections(trackList, id: \.id, name: \.title)
+    tracksByTitle = Self.sorted(trackList, id: \.id, name: \.title)
     tracksByDateAdded = trackList.sorted { $0.dateAdded > $1.dateAdded }.map(\.id)
-    albumsByTitle = Self.sections(Array(albums.values), id: \.id, name: \.title)
-    artistsByName = Self.sections(Array(artists.values), id: \.id, name: \.name)
+    albumsByTitle = Self.sorted(Array(albums.values), id: \.id, name: \.title)
+    artistsByName = Self.sorted(Array(artists.values), id: \.id, name: \.name)
     searchIndex = SearchIndex(
       tracks: trackList, albums: Array(albums.values), artists: Array(artists.values))
   }
@@ -92,33 +85,11 @@ struct LibrarySnapshot: Sendable {
 
   // MARK: - Private
 
-  /// Sorts by `SortKey` and groups by first letter, with "#" last like the
-  /// Music app.
-  private static func sections<T, ID: Hashable & Sendable>(
-    _ items: [T], id: (T) -> ID, name: (T) -> String
-  ) -> [IndexedSection<ID>] {
-    let keyed = items
+  /// IDs ordered by `SortKey` of their names.
+  private static func sorted<T, ID>(_ items: [T], id: (T) -> ID, name: (T) -> String) -> [ID] {
+    items
       .map { (key: SortKey.make(name($0)), id: id($0)) }
       .sorted { SortKey.less($0.key, $1.key) }
-    var result: [IndexedSection<ID>] = []
-    var other: [ID] = []
-    var letter: String?
-    var ids: [ID] = []
-    for item in keyed {
-      let section = SortKey.section(item.key)
-      if section == "#" {
-        other.append(item.id)
-        continue
-      }
-      if section != letter {
-        if let letter { result.append(IndexedSection(letter: letter, ids: ids)) }
-        letter = section
-        ids = []
-      }
-      ids.append(item.id)
-    }
-    if let letter { result.append(IndexedSection(letter: letter, ids: ids)) }
-    if !other.isEmpty { result.append(IndexedSection(letter: "#", ids: other)) }
-    return result
+      .map(\.id)
   }
 }

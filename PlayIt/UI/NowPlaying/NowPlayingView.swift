@@ -160,6 +160,7 @@ private struct UpNextSections: View {
       Section("Up Next") {
         ForEach(topQueue, id: \.entry.id) { item in
           TrackRow(track: item.track)
+            .compactRowInsets()
             .contextMenu { MediaMenu(ref: .track(item.track.id)) }
         }
         .onMove { player.moveInTopQueue(fromOffsets: $0, toOffset: $1) }
@@ -171,6 +172,7 @@ private struct UpNextSections: View {
       Section {
         ForEach(Array(upcoming.enumerated()), id: \.offset) { _, track in
           TrackRow(track: track)
+            .compactRowInsets()
             .contextMenu { MediaMenu(ref: .track(track.id)) }
             .deleteDisabled(true)
             .moveDisabled(true)

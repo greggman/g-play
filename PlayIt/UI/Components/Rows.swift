@@ -128,22 +128,8 @@ struct PlaylistRow: View {
 }
 
 extension View {
-  /// Adds a section index letter where the OS supports it.
-  @ViewBuilder
-  func sectionIndex(_ letter: String) -> some View {
-    if #available(iOS 26.0, *) {
-      sectionIndexLabel(letter)
-    } else {
-      self
-    }
-  }
-
-  @ViewBuilder
-  func showsSectionIndex() -> some View {
-    if #available(iOS 26.0, *) {
-      listSectionIndexVisibility(.visible)
-    } else {
-      self
-    }
+  /// Tighter vertical padding than the List default.
+  func compactRowInsets() -> some View {
+    listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
   }
 }

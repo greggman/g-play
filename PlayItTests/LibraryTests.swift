@@ -72,11 +72,6 @@ struct SortKeyTests {
     #expect(SortKey.make("Theory") == "theory")
   }
 
-  @Test func sections() {
-    #expect(SortKey.section("beatles") == "B")
-    #expect(SortKey.section("99 problems") == "#")
-    #expect(SortKey.section("") == "#")
-  }
 }
 
 struct LibrarySnapshotTests {
@@ -90,9 +85,8 @@ struct LibrarySnapshotTests {
     ],
     systemPlaylists: [Playlist(id: .system(1), name: "P", trackIDs: [3, 99, 1])])
 
-  @Test func trackSectionsSortedWithNumbersLast() {
-    #expect(snapshot.tracksByTitle.map(\.letter) == ["A", "E", "Z", "#"])
-    #expect(snapshot.tracksByTitle.flatMap(\.ids) == [2, 3, 1, 4])
+  @Test func tracksSortedByTitle() {
+    #expect(snapshot.tracksByTitle == [4, 2, 3, 1])
   }
 
   @Test func albumsInTrackOrder() {
@@ -102,7 +96,7 @@ struct LibrarySnapshotTests {
   @Test func artistAlbumsAndTracks() {
     #expect(snapshot.artists[10]?.albumIDs == [300, 100])
     #expect(snapshot.trackIDs(forArtist: 10) == [4, 2, 1])
-    #expect(snapshot.artistsByName.map(\.letter) == ["B", "C"])
+    #expect(snapshot.artistsByName == [10, 20])
   }
 
   @Test func dateAddedNewestFirst() {
