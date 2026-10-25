@@ -20,6 +20,14 @@ struct MiniPlayer: View {
         }
         Spacer(minLength: 0)
         Button {
+          player.previous()
+        } label: {
+          Image(systemName: "backward.fill")
+            .font(.title3)
+            .frame(width: 44, height: 44)
+        }
+        .accessibilityLabel("Previous Track")
+        Button {
           player.togglePlayPause()
         } label: {
           Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
