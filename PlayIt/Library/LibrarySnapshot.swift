@@ -61,7 +61,9 @@ struct LibrarySnapshot: Sendable {
 
     tracksByTitle = Self.sorted(trackList, name: \.title)
     tracksByDateAdded = trackList.sorted { $0.dateAdded > $1.dateAdded }
-    albumsByTitle = Self.sorted(Array(albums.values), name: \.title)
+    // "Unknown Album"s go last, by artist, as they have no title to sort by.
+    let (unknownAlbums, namedAlbums) = albums.values.partitioned(by: \.isUnknown)
+    albumsByTitle = Self.sorted(namedAlbums, name: \.title) + Self.sorted(unknownAlbums, name: \.artist)
     artistsByName = Self.sorted(Array(artists.values), name: \.name)
     searchIndex = SearchIndex(
       tracks: trackList, albums: Array(albums.values), artists: Array(artists.values))
@@ -97,5 +99,17 @@ struct LibrarySnapshot: Sendable {
       .map { (key: SortKey.make(name($0)), item: $0) }
       .sorted { SortKey.less($0.key, $1.key) }
       .map(\.item)
+  }
+}
+
+private extension Sequence {
+  /// Elements where `predicate` is true, and where it's false.
+  func partitioned(by predicate: (Element) -> Bool) -> ([Element], [Element]) {
+    var matching: [Element] = []
+    var rest: [Element] = []
+    for element in self {
+      if predicate(element) { matching.append(element) } else { rest.append(element) }
+    }
+    return (matching, rest)
   }
 }

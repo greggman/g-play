@@ -74,14 +74,15 @@ final class SystemMusicLibrary: MusicLibrary {
   }
 
   nonisolated private static func track(_ item: MPMediaItem) -> Track {
-    Track(
+    Track.fromLibrary(
       id: item.persistentID,
-      title: item.title ?? String(localized: "Unknown Title"),
-      artist: item.artist ?? String(localized: "Unknown Artist"),
+      title: item.title,
+      artist: item.artist,
       artistID: item.artistPersistentID,
-      album: item.albumTitle ?? String(localized: "Unknown Album"),
+      album: item.albumTitle,
       albumID: item.albumPersistentID,
-      albumArtist: item.albumArtist ?? "",
+      albumArtist: item.albumArtist,
+      albumArtistID: item.albumArtistPersistentID,
       trackNumber: item.albumTrackNumber,
       discNumber: item.discNumber,
       duration: item.playbackDuration,
