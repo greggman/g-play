@@ -57,6 +57,7 @@ struct TrackRow: View {
     }
     .contentShape(Rectangle())
     .accessibilityElement(children: .combine)
+    .accessibilityIdentifier("TrackRow")
   }
 
   private var isCurrent: Bool { player.queue.current == track.id }

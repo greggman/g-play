@@ -46,7 +46,12 @@ final class AppModel {
   /// player on a device, a generated library and `AVPlayer` on the Simulator.
   static func live(arguments: [String] = ProcessInfo.processInfo.arguments) -> AppModel {
     let store = StateStore.default
-    if arguments.contains("-resetState") { store.reset() }
+    if arguments.contains("-resetState") {
+      store.reset()
+      if let domain = Bundle.main.bundleIdentifier {
+        UserDefaults.standard.removePersistentDomain(forName: domain)
+      }
+    }
     #if targetEnvironment(simulator)
       let useFixture = !arguments.contains("-systemLibrary")
     #else

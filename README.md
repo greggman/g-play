@@ -31,4 +31,4 @@ every track. Launch arguments:
 | `-fixtureTrackCount N` | Size of the generated library (default 400) |
 | `-systemLibrary` | Use the real library / system player on the Simulator |
 | `-fixtureLibrary` | Use the generated library on a device |
-| `-resetState` | Forget the saved queue and playlists |
+| `-resetState` | Forget the saved queue, playlists and preferences |

@@ -42,6 +42,7 @@ struct MiniPlayer: View {
       .contentShape(Rectangle())
       .onTapGesture { router.isNowPlayingPresented = true }
       .accessibilityAction(named: "Open Now Playing") { router.isNowPlayingPresented = true }
+      .accessibilityIdentifier("MiniPlayer")
       .contextMenu {
         CopyMenuItems(trackTitle: track.title, artist: track.artist, album: track.album)
       }

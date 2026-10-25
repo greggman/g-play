@@ -135,6 +135,7 @@ struct TransportControls: View {
           .contentTransition(.symbolEffect(.replace))
       }
       .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
+      .accessibilityIdentifier("NowPlayingPlayPause")
       Button { player.next() } label: {
         Image(systemName: "forward.fill").font(.title)
       }
