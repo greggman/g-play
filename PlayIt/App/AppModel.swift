@@ -2,12 +2,16 @@ import Observation
 import os
 import SwiftUI
 
-/// Something a queue action can apply to: any search result or list row.
+/// Something a queue action can apply to: any search result or list row, or
+/// a whole list that a song was picked from.
 enum MediaRef: Hashable {
   case track(Track.ID)
   case album(Album.ID)
   case artist(Artist.ID)
   case playlist(PlaylistID)
+  case songs
+  case recentlyAdded
+  case searchResults(String)
 }
 
 /// App-wide state: the library, playlists, player and navigation.
@@ -114,6 +118,9 @@ final class AppModel {
     case .album(let id): snapshot.albums[id]?.trackIDs ?? []
     case .artist(let id): snapshot.trackIDs(forArtist: id)
     case .playlist(let id): (playlist(id)?.trackIDs ?? []).filter { snapshot.tracks[$0] != nil }
+    case .songs: snapshot.tracksByTitle.map(\.id)
+    case .recentlyAdded: snapshot.tracksByDateAdded.map(\.id)
+    case .searchResults(let query): snapshot.searchIndex.search(query).tracks
     }
   }
 
@@ -123,6 +130,9 @@ final class AppModel {
     case .album(let id): .album(id)
     case .artist(let id): .artist(id)
     case .playlist(let id): .playlist(id)
+    case .songs: .songs
+    case .recentlyAdded: .recentlyAdded
+    case .searchResults(let query): .searchResults(query)
     }
   }
 
@@ -134,6 +144,9 @@ final class AppModel {
     case .artist(let id): snapshot.artists[id]?.name ?? ""
     case .playlist(let id): playlist(id)?.name ?? ""
     case .track(let id): snapshot.tracks[id]?.title ?? ""
+    case .songs: String(localized: "Songs")
+    case .recentlyAdded: String(localized: "Recently Added")
+    case .searchResults(let query): String(localized: "Search “\(query)”")
     }
   }
 

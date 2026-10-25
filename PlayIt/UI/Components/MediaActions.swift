@@ -92,7 +92,7 @@ struct MediaMenu: View {
         if let album = model.album(id) {
           Button("Search Artist", systemImage: "magnifyingglass") { router.showSearch(forArtist: album.artist) }
         }
-      case .artist, .playlist:
+      case .artist, .playlist, .songs, .recentlyAdded, .searchResults:
         EmptyView()
       }
     }
@@ -112,6 +112,8 @@ struct MediaMenu: View {
       CopyMenuItems(artist: model.artist(id)?.name)
     case .playlist(let id):
       CopyMenuItems(playlist: model.playlist(id)?.name)
+    case .songs, .recentlyAdded, .searchResults:
+      EmptyView()
     }
   }
 }

@@ -8,4 +8,10 @@ enum PlayMode: Hashable, Sendable, Codable {
   case album(Album.ID)
   case artist(Artist.ID)
   case track(Track.ID)
+  /// Library → Songs, in title order.
+  case songs
+  /// Library → Added, newest first.
+  case recentlyAdded
+  /// The songs found by a search.
+  case searchResults(String)
 }

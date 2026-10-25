@@ -67,9 +67,9 @@ private struct SongList: View {
   var body: some View {
     Section {
       ForEach(tracks) { track in
-        Button { model.play(.track(track.id)) } label: { TrackRow(track: track) }
+        Button { model.play(.songs, startingAt: track.id) } label: { TrackRow(track: track) }
           .buttonStyle(.plain)
-          .mediaActions(.track(track.id))
+          .mediaActions(.track(track.id), playContext: .songs)
       }
     }
   }
@@ -108,11 +108,11 @@ private struct RecentlyAddedSection: View {
   var body: some View {
     Section {
       ForEach(tracks) { track in
-        Button { model.play(.track(track.id)) } label: {
+        Button { model.play(.recentlyAdded, startingAt: track.id) } label: {
           TrackRow(track: track, detail: track.dateAdded.formatted(date: .abbreviated, time: .omitted))
         }
         .buttonStyle(.plain)
-        .mediaActions(.track(track.id))
+        .mediaActions(.track(track.id), playContext: .recentlyAdded)
       }
     }
   }

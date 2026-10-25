@@ -4,6 +4,8 @@ struct SearchView: View {
   @Environment(AppModel.self) private var model
   @Environment(Router.self) private var router
   @State private var results = SearchIndex.Results()
+  /// The query `results` are for.
+  @State private var query = ""
 
   /// Rows shown per section before "Show All".
   static let previewCount = 5
@@ -30,9 +32,11 @@ struct SearchView: View {
       if !results.tracks.isEmpty {
         Section("Songs") {
           ForEach(results.tracks.compactMap(model.track)) { track in
-            Button { model.play(.track(track.id)) } label: { TrackRow(track: track, detail: track.album) }
-              .buttonStyle(.plain)
-              .mediaActions(.track(track.id))
+            Button { model.play(.searchResults(query), startingAt: track.id) } label: {
+              TrackRow(track: track, detail: track.album)
+            }
+            .buttonStyle(.plain)
+            .mediaActions(.track(track.id), playContext: .searchResults(query))
           }
         }
       }
@@ -60,6 +64,7 @@ struct SearchView: View {
       let index = model.snapshot.searchIndex
       let query = router.searchText
       results = await Task.detached(priority: .userInitiated) { index.search(query) }.value
+      self.query = query
     }
   }
 }
