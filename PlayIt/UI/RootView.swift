@@ -43,9 +43,6 @@ private struct MainTabView: View {
       }
     }
     .miniPlayerAccessory()
-    .sheet(isPresented: $router.isNowPlayingPresented) {
-      NowPlayingView()
-    }
     .newPlaylistAlert(trackIDs: $model.pendingNewPlaylist)
   }
 }
@@ -57,6 +54,7 @@ extension View {
       case .album(let id): AlbumView(id: id)
       case .artist(let id): ArtistView(id: id)
       case .playlist(let id): PlaylistView(id: id)
+      case .nowPlaying: NowPlayingView()
       }
     }
   }

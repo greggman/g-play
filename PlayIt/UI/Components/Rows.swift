@@ -83,6 +83,7 @@ struct AlbumRow: View {
       }
     }
     .accessibilityElement(children: .combine)
+    .accessibilityIdentifier("AlbumRow")
   }
 }
 

@@ -112,5 +112,6 @@ struct PlaylistView: View {
     let ids = model.trackIDs(for: .playlist(id))
     let valid = playlist.trackIDs.prefix(index).filter { model.track($0) != nil }.count
     model.player.play(mode: .playlist(id), trackIDs: ids, startIndex: valid)
+    router.showNowPlaying()
   }
 }

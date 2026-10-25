@@ -3,37 +3,34 @@ import SwiftUI
 struct NowPlayingView: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerController.self) private var player
-  @Environment(Router.self) private var router
-  @Environment(\.dismiss) private var dismiss
 
+  /// Full screen, pushed onto the current tab like any other screen, so the
+  /// back button returns to where the user was.
   var body: some View {
-    NavigationStack {
-      Group {
-        if let track = player.currentTrack {
-          List {
-            Section {
-              NowPlayingHeader(track: track)
-                .listRowSeparator(.hidden)
-            }
-            UpNextSections()
+    Group {
+      if let track = player.currentTrack {
+        List {
+          Section {
+            NowPlayingHeader(track: track)
+              .listRowSeparator(.hidden)
           }
-          .listStyle(.plain)
-          .environment(\.editMode, .constant(.active))
-        } else {
-          ContentUnavailableView(
-            "Nothing Playing", systemImage: "music.note",
-            description: Text("Choose something from your library, or Shuffle All."))
+          UpNextSections()
         }
+        .listStyle(.plain)
+        .environment(\.editMode, .constant(.active))
+      } else {
+        ContentUnavailableView(
+          "Nothing Playing", systemImage: "music.note",
+          description: Text("Choose something from your library, or Shuffle All."))
       }
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button("Close", systemImage: "chevron.down") { dismiss() }
-        }
-        if !player.queue.topQueue.isEmpty {
-          ToolbarItem(placement: .primaryAction) {
-            Button("Clear Up Next") { player.clearTopQueue() }
-          }
+    }
+    .navigationTitle("Now Playing")
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbar(.hidden, for: .tabBar)
+    .toolbar {
+      if !player.queue.topQueue.isEmpty {
+        ToolbarItem(placement: .primaryAction) {
+          Button("Clear Up Next") { player.clearTopQueue() }
         }
       }
     }

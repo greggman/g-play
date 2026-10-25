@@ -145,12 +145,20 @@ final class AppModel {
     guard !ids.isEmpty else { return }
     let start = trackID.flatMap { ids.firstIndex(of: $0) } ?? 0
     player.play(mode: mode(for: ref), trackIDs: ids, startIndex: start)
+    router.showNowPlaying()
   }
 
-  func playNow(_ ref: MediaRef) { player.playNow(trackIDs(for: ref)) }
+  func playNow(_ ref: MediaRef) {
+    player.playNow(trackIDs(for: ref))
+    router.showNowPlaying()
+  }
+
   func playNext(_ ref: MediaRef) { player.playNext(trackIDs(for: ref)) }
   func playLater(_ ref: MediaRef) { player.playLater(trackIDs(for: ref)) }
-  func shuffleAll() { player.shuffleAll() }
+  func shuffleAll() {
+    player.shuffleAll()
+    router.showNowPlaying()
+  }
 
   // MARK: - Playlists
 

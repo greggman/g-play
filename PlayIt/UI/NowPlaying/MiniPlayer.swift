@@ -40,8 +40,8 @@ struct MiniPlayer: View {
       .padding(.leading, 12)
       .padding(.trailing, 4)
       .contentShape(Rectangle())
-      .onTapGesture { router.isNowPlayingPresented = true }
-      .accessibilityAction(named: "Open Now Playing") { router.isNowPlayingPresented = true }
+      .onTapGesture { router.showNowPlaying() }
+      .accessibilityAction(named: "Open Now Playing") { router.showNowPlaying() }
       .accessibilityIdentifier("MiniPlayer")
       .contextMenu {
         CopyMenuItems(trackTitle: track.title, artist: track.artist, album: track.album)
@@ -75,9 +75,10 @@ extension View {
 @available(iOS 26.1, *)
 private struct MiniPlayerAccessory: ViewModifier {
   @Environment(PlayerController.self) private var player
+  @Environment(Router.self) private var router
 
   func body(content: Content) -> some View {
-    content.tabViewBottomAccessory(isEnabled: player.currentTrack != nil) {
+    content.tabViewBottomAccessory(isEnabled: player.currentTrack != nil && !router.isShowingNowPlaying) {
       MiniPlayer()
     }
   }
@@ -85,10 +86,11 @@ private struct MiniPlayerAccessory: ViewModifier {
 
 private struct MiniPlayerInset: ViewModifier {
   @Environment(PlayerController.self) private var player
+  @Environment(Router.self) private var router
 
   func body(content: Content) -> some View {
     content.safeAreaInset(edge: .bottom, spacing: 0) {
-      if player.currentTrack != nil {
+      if player.currentTrack != nil && !router.isShowingNowPlaying {
         MiniPlayer()
           .padding(.vertical, 6)
           .background(.bar)
