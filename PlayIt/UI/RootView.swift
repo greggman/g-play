@@ -55,6 +55,7 @@ extension View {
       case .artist(let id): ArtistView(id: id)
       case .playlist(let id): PlaylistView(id: id)
       case .nowPlaying: NowPlayingView()
+      case .upNext: UpNextView()
       }
     }
   }

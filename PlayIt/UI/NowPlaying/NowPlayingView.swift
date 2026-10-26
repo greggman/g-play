@@ -1,23 +1,19 @@
 import SwiftUI
 
 struct NowPlayingView: View {
-  @Environment(AppModel.self) private var model
   @Environment(PlayerController.self) private var player
+  @Environment(Router.self) private var router
+  @Environment(\.dismiss) private var dismiss
 
   /// Full screen, pushed onto the current tab like any other screen, so the
-  /// back button returns to where the user was.
+  /// back button returns to where the user was. Just the player: the queue
+  /// is on its own screen, so nothing here competes with the slider's drag.
   var body: some View {
     Group {
       if let track = player.currentTrack {
-        List {
-          Section {
-            NowPlayingHeader(track: track)
-              .listRowSeparator(.hidden)
-          }
-          UpNextSections()
-        }
-        .listStyle(.plain)
-        .environment(\.editMode, .constant(.active))
+        NowPlayingHeader(track: track)
+          .padding(.horizontal, 24)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else {
         ContentUnavailableView(
           "Nothing Playing", systemImage: "music.note",
@@ -27,11 +23,44 @@ struct NowPlayingView: View {
     .navigationTitle("Now Playing")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
+    // Horizontal drags here are for the position slider, not for going
+    // back. Hiding the system back button turns off swipe-to-go-back, so
+    // put an identical one in its place.
+    .navigationBarBackButtonHidden()
+    .toolbar {
+      ToolbarItem(placement: .topBarLeading) {
+        Button("Back", systemImage: "chevron.backward") { dismiss() }
+      }
+      ToolbarItem(placement: .primaryAction) {
+        Button("Up Next", systemImage: "list.bullet") { router.show(.upNext) }
+      }
+    }
+  }
+}
+
+/// The queue: songs queued with Play Next / Play Later (reorderable,
+/// deletable), then what's next from the current mode.
+struct UpNextView: View {
+  @Environment(PlayerController.self) private var player
+
+  var body: some View {
+    List {
+      UpNextSections()
+    }
+    .listStyle(.plain)
+    .environment(\.editMode, .constant(.active))
+    .navigationTitle("Up Next")
+    .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       if !player.queue.topQueue.isEmpty {
         ToolbarItem(placement: .primaryAction) {
-          Button("Clear Up Next") { player.clearTopQueue() }
+          Button("Clear Queued") { player.clearTopQueue() }
         }
+      }
+    }
+    .overlay {
+      if player.queue.upcomingTrackIDs.isEmpty {
+        ContentUnavailableView("Nothing Up Next", systemImage: "list.bullet")
       }
     }
   }
@@ -39,11 +68,18 @@ struct NowPlayingView: View {
 
 private struct NowPlayingHeader: View {
   let track: Track
+  @Environment(AppModel.self) private var model
   @Environment(PlayerController.self) private var player
   @Environment(Router.self) private var router
 
   var body: some View {
     VStack(spacing: 20) {
+      if let mode = player.queue.mode {
+        Text("Playing from \(model.title(for: mode))")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+      }
       Button { router.show(.album(track.albumID)) } label: {
         LargeArtworkView(trackID: track.id)
           .frame(maxWidth: 360)
@@ -81,25 +117,50 @@ private struct NowPlayingHeader: View {
 }
 
 /// The playback position ("queue slider"), with elapsed and remaining time.
+///
+/// Touch or drag anywhere along the bar to seek. (A system `Slider` only
+/// moves if you start right on its small thumb, which at the start of a song
+/// sits against the screen edge.) Still a slider to VoiceOver.
 struct PositionSlider: View {
   @Environment(PlayerController.self) private var player
   @State private var scrubPosition: TimeInterval?
 
+  /// VoiceOver adjusts by this much.
+  static let accessibilityStep: TimeInterval = 10
+
   var body: some View {
     let duration = max(player.duration, 1)
     let position = scrubPosition ?? min(player.elapsed, duration)
+    let isScrubbing = scrubPosition != nil
     VStack(spacing: 4) {
-      Slider(
-        value: Binding(get: { position }, set: { scrubPosition = $0 }),
-        in: 0...duration
-      ) { editing in
-        if !editing, let scrubPosition {
-          player.seek(to: scrubPosition)
-          self.scrubPosition = nil
+      GeometryReader { geometry in
+        let width = geometry.size.width
+        ZStack(alignment: .leading) {
+          Capsule().fill(.quaternary)
+          Capsule().fill(Color.accentColor)
+            .frame(width: max(0, min(1, position / duration)) * width)
         }
+        .frame(height: isScrubbing ? 12 : 6)
+        .frame(maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .gesture(
+          DragGesture(minimumDistance: 0)
+            .onChanged { value in
+              scrubPosition = max(0, min(1, value.location.x / width)) * duration
+            }
+            .onEnded { _ in
+              if let scrubPosition { player.seek(to: scrubPosition) }
+              scrubPosition = nil
+            })
+        .animation(.easeOut(duration: 0.15), value: isScrubbing)
       }
-      .accessibilityLabel("Playback position")
-      .accessibilityValue(Self.format(position))
+      .frame(height: 44)
+      .accessibilityRepresentation {
+        Slider(value: Binding(get: { position }, set: { player.seek(to: $0) }), in: 0...duration,
+               step: Self.accessibilityStep)
+          .accessibilityLabel("Playback position")
+          .accessibilityValue(Self.format(position))
+      }
       HStack {
         Text(Self.format(position))
         Spacer()
@@ -154,7 +215,7 @@ private struct UpNextSections: View {
   var body: some View {
     let topQueue = player.topQueueTracks
     if !topQueue.isEmpty {
-      Section("Up Next") {
+      Section("Queued") {
         ForEach(topQueue, id: \.entry.id) { item in
           TrackRow(track: item.track)
             .compactRowInsets()

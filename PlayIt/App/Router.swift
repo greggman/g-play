@@ -12,6 +12,7 @@ enum Route: Hashable {
   case artist(Artist.ID)
   case playlist(PlaylistID)
   case nowPlaying
+  case upNext
 }
 
 /// Navigation state for the whole app, so any screen can send the user

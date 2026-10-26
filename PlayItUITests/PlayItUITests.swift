@@ -73,6 +73,27 @@ final class PlayItUITests: XCTestCase {
     XCTAssertGreaterThanOrEqual(elapsed[0] * 60 + elapsed[1], 8)
   }
 
+  /// Dragging the position slider must not swipe back out of Now Playing.
+  func testDraggingSliderStaysOnNowPlaying() {
+    app.buttons["Shuffle All"].tap()
+    let slider = app.sliders["Playback position"]
+    XCTAssertTrue(slider.waitForExistence(timeout: 5))
+    slider.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5))
+      .press(forDuration: 0.05, thenDragTo: slider.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5)))
+    sleep(1)
+    XCTAssertTrue(slider.exists)
+    // It seeked: fixture tracks are 2–6 minutes, so 80% is past 1:30.
+    let elapsed = (slider.value as? String ?? "").split(separator: ":").compactMap { Int($0) }
+    XCTAssertEqual(elapsed.count, 2)
+    XCTAssertGreaterThanOrEqual(elapsed[0] * 60 + elapsed[1], 90)
+    XCTAssertTrue(app.navigationBars["Now Playing"].exists)
+    // Also a drag across an empty part of the screen, below the controls.
+    let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.95))
+    start.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.95)))
+    sleep(1)
+    XCTAssertTrue(app.navigationBars["Now Playing"].exists)
+  }
+
   func testLongPressAlwaysOffersCopy() {
     longPress(firstTrackRow)
     XCTAssertTrue(app.buttons["Copy Track Name"].waitForExistence(timeout: 5))
@@ -102,11 +123,8 @@ final class PlayItUITests: XCTestCase {
 
     miniPlayer.tap()
     XCTAssertTrue(app.sliders["Playback position"].waitForExistence(timeout: 5))
-    // Scroll a little, past the artwork and controls, to Up Next.
-    let list = app.collectionViews.firstMatch
-    list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
-      .press(forDuration: 0.1, thenDragTo: list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
-    XCTAssertTrue(app.staticTexts["Up Next"].waitForExistence(timeout: 5))
+    app.buttons["Up Next"].tap()
+    XCTAssertTrue(app.staticTexts["Queued"].waitForExistence(timeout: 5))
     // The library screen underneath isn't in the accessibility tree, so a
     // match is the Up Next row. (Rows in an editable list lose their
     // identifier, so match by label.)

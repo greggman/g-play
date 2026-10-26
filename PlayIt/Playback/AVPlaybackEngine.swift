@@ -104,6 +104,7 @@ final class AVPlaybackEngine: PlaybackEngine {
   }
 
   func seek(to time: TimeInterval) {
+    
     player.seek(to: CMTime(seconds: time, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
   }
 
