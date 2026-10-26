@@ -18,7 +18,7 @@ This app plays the iPhone's built in Music Library.
   * plays even when the app is not in the front
   * plays on the lock screen with album art
   * clicking the album art on the lock screen goes to that album
-  * clicking an artist's name goes to that artist's search results
+  * clicking an artist's name goes to that artist (not a search, which also shows other artists)
   * has list of music sorted by
     * track name
     * album name

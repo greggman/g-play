@@ -114,7 +114,13 @@
     "Find songs by title, artist or album." : {
 
     },
+    "Go Back" : {
+
+    },
     "Go to Album" : {
+
+    },
+    "Go to Artist" : {
 
     },
     "Library" : {
@@ -216,19 +222,16 @@
     "Search" : {
 
     },
-    "Search Artist" : {
-
-    },
     "Search Your Library" : {
 
     },
     "Search “%@”" : {
 
     },
-    "Shows search results for this artist" : {
+    "Shows the album" : {
 
     },
-    "Shows the album" : {
+    "Shows this artist" : {
 
     },
     "Shuffle" : {

@@ -37,14 +37,6 @@ final class Router {
     if !isShowingNowPlaying { show(.nowPlaying) }
   }
 
-  /// Tapping an artist's name goes to that artist's search results.
-  func showSearch(forArtist name: String) {
-    selectedTab = .search
-    searchPath = []
-    searchText = name
-    isSearchPresented = true
-  }
-
   /// Pushes `route` onto the current tab.
   func show(_ route: Route) {
     currentPath.append(route)

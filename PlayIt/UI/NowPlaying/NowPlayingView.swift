@@ -71,6 +71,12 @@ private struct NowPlayingHeader: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerController.self) private var player
   @Environment(Router.self) private var router
+  @Environment(\.dismiss) private var dismiss
+  /// How far the artwork has been dragged left.
+  @State private var artworkDrag: CGFloat = 0
+
+  /// Dragging the artwork left this far goes back.
+  static let backDragDistance: CGFloat = 80
 
   var body: some View {
     VStack(spacing: 20) {
@@ -80,25 +86,42 @@ private struct NowPlayingHeader: View {
           .foregroundStyle(.secondary)
           .lineLimit(1)
       }
-      Button { router.show(.album(track.albumID)) } label: {
-        LargeArtworkView(trackID: track.id)
-          .frame(maxWidth: 360)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("Album artwork")
-      .accessibilityHint("Shows the album")
-      .contextMenu {
-        CopyMenuItems(trackTitle: track.title, artist: track.artist, album: track.album)
-      }
+      LargeArtworkView(trackID: track.id)
+        .frame(maxWidth: 360)
+        .contentShape(Rectangle())
+        .offset(x: artworkDrag)
+        // Drag left to go back, so going back doesn't need a reach to the
+        // far side of the screen. Tapping does nothing.
+        .gesture(
+          DragGesture(minimumDistance: 20)
+            .onChanged { value in
+              guard abs(value.translation.width) > abs(value.translation.height) else { return }
+              artworkDrag = min(0, value.translation.width)
+            }
+            .onEnded { value in
+              if value.translation.width < -Self.backDragDistance
+                && abs(value.translation.width) > abs(value.translation.height) {
+                dismiss()
+              } else {
+                withAnimation(.spring(duration: 0.3)) { artworkDrag = 0 }
+              }
+            })
+        .accessibilityElement()
+        .accessibilityLabel("Album artwork")
+        .accessibilityAction(named: "Go Back") { dismiss() }
+        .contextMenu {
+          CopyMenuItems(trackTitle: track.title, artist: track.artist, album: track.album)
+        }
 
       VStack(spacing: 4) {
         Text(track.title)
           .font(.title2.bold())
           .multilineTextAlignment(.center)
           .contextMenu { CopyMenuItems(trackTitle: track.title) }
-        Button(track.artist) { router.showSearch(forArtist: track.artist) }
+        Button(track.artist) { router.show(.artist(track.artistID)) }
           .font(.title3)
-          .accessibilityHint("Shows search results for this artist")
+          .accessibilityHint("Shows this artist")
+          .accessibilityIdentifier("NowPlayingArtist")
           .contextMenu { CopyMenuItems(artist: track.artist) }
         Button(track.album) { router.show(.album(track.albumID)) }
           .font(.subheadline)

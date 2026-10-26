@@ -89,11 +89,13 @@ struct MediaMenu: View {
       case .track(let id):
         if let track = model.track(id) {
           Button("Go to Album", systemImage: "square.stack") { router.show(.album(track.albumID)) }
-          Button("Search Artist", systemImage: "magnifyingglass") { router.showSearch(forArtist: track.artist) }
+          Button("Go to Artist", systemImage: "music.mic") { router.show(.artist(track.artistID)) }
         }
       case .album(let id):
         if let album = model.album(id) {
-          Button("Search Artist", systemImage: "magnifyingglass") { router.showSearch(forArtist: album.artist) }
+          if !album.isVariousArtists {
+            Button("Go to Artist", systemImage: "music.mic") { router.show(.artist(album.artistID)) }
+          }
         }
       case .artist, .playlist, .songs, .recentlyAdded, .searchResults:
         EmptyView()

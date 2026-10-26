@@ -1,16 +1,21 @@
 import SwiftUI
 
-/// A button showing an artist's name. Tapping it goes to that artist's
-/// search results.
+/// A button showing an artist's name. Tapping it goes to that artist.
+/// With no `id` (e.g. "Various Artists") it's plain text.
 struct ArtistLink: View {
   let name: String
+  let id: Artist.ID?
   @Environment(Router.self) private var router
 
   var body: some View {
-    Button(name) { router.showSearch(forArtist: name) }
-      .buttonStyle(.borderless)
-      .foregroundStyle(.secondary)
-      .accessibilityHint("Shows search results for this artist")
+    if let id {
+      Button(name) { router.show(.artist(id)) }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.secondary)
+        .accessibilityHint("Shows this artist")
+    } else {
+      Text(name).foregroundStyle(.secondary)
+    }
   }
 }
 
@@ -40,7 +45,7 @@ struct TrackRow: View {
           .foregroundStyle(isCurrent ? Color.accentColor : .primary)
           .lineLimit(1)
         HStack(spacing: 4) {
-          ArtistLink(name: track.artist)
+          ArtistLink(name: track.artist, id: track.artistID)
             .lineLimit(1)
           if let detail {
             Text("· \(detail)")
@@ -60,7 +65,7 @@ struct TrackRow: View {
     .contentShape(Rectangle())
     .accessibilityElement(children: .combine)
     // The artist link isn't reachable inside the combined element.
-    .accessibilityAction(named: "Search Artist") { router.showSearch(forArtist: track.artist) }
+    .accessibilityAction(named: "Go to Artist") { router.show(.artist(track.artistID)) }
     .accessibilityIdentifier("TrackRow")
   }
 

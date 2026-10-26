@@ -94,6 +94,21 @@ final class PlayItUITests: XCTestCase {
     XCTAssertTrue(app.navigationBars["Now Playing"].exists)
   }
 
+  func testDraggingArtworkLeftGoesBack() {
+    app.buttons["Shuffle All"].tap()
+    let artwork = app.descendants(matching: .any)["Album artwork"]
+    XCTAssertTrue(artwork.waitForExistence(timeout: 5))
+    // A tap does nothing, and a short drag springs back.
+    artwork.tap()
+    artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5))
+      .press(forDuration: 0.05, thenDragTo: artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+    sleep(1)
+    XCTAssertTrue(app.navigationBars["Now Playing"].exists)
+    artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5))
+      .press(forDuration: 0.05, thenDragTo: artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)))
+    XCTAssertTrue(app.navigationBars["Library"].waitForExistence(timeout: 5))
+  }
+
   func testLongPressAlwaysOffersCopy() {
     longPress(firstTrackRow)
     XCTAssertTrue(app.buttons["Copy Track Name"].waitForExistence(timeout: 5))
@@ -132,15 +147,25 @@ final class PlayItUITests: XCTestCase {
     XCTAssertTrue(rows.firstMatch.exists)
   }
 
-  func testArtistNameGoesToSearch() {
+  /// The artist's own page, not a search (which also shows other artists).
+  func testArtistNameGoesToArtist() {
     let row = firstTrackRow
     XCTAssertTrue(row.waitForExistence(timeout: 5))
     longPress(row)
-    app.buttons["Search Artist"].tap()
-    let field = app.searchFields.firstMatch
-    XCTAssertTrue(field.waitForExistence(timeout: 5))
-    XCTAssertFalse((field.value as? String ?? "").isEmpty)
-    XCTAssertTrue(app.staticTexts["Artists"].waitForExistence(timeout: 5))
+    app.buttons["Go to Artist"].tap()
+    XCTAssertTrue(app.staticTexts["Albums"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["Songs"].exists)
+    XCTAssertFalse(app.searchFields.firstMatch.exists)
+
+    // And from Now Playing's artist name.
+    goBack()
+    app.buttons["Shuffle All"].tap()
+    let artist = app.buttons["NowPlayingArtist"]
+    XCTAssertTrue(artist.waitForExistence(timeout: 5))
+    let name = artist.label
+    artist.tap()
+    XCTAssertTrue(app.navigationBars[name].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["Albums"].exists)
   }
 
   func testCreatePlaylistAndAddSong() {

@@ -129,6 +129,9 @@ struct Album: Identifiable, Hashable, Sendable {
 
   /// Songs with no album name, grouped by artist.
   var isUnknown: Bool { title == Track.unknownAlbum }
+
+  /// No single artist to link to.
+  var isVariousArtists: Bool { artist == Track.variousArtists }
 }
 
 struct Artist: Identifiable, Hashable, Sendable {

@@ -15,7 +15,7 @@ struct AlbumView: View {
               .font(.title2.bold())
               .multilineTextAlignment(.center)
               .contextMenu { CopyMenuItems(album: album.title) }
-            ArtistLink(name: album.artist)
+            ArtistLink(name: album.artist, id: album.isVariousArtists ? nil : album.artistID)
               .font(.title3)
               .contextMenu { CopyMenuItems(artist: album.artist) }
             PlayButtons(ref: .album(id))
