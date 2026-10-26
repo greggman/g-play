@@ -55,6 +55,35 @@ struct AppModelTests {
     #expect(model.router.isShowingNowPlaying)
   }
 
+  /// Picking the playing song in a list shows Now Playing without
+  /// restarting it.
+  @Test func pickingThePlayingSongDoesNotRestartIt() async throws {
+    let model = try await loadedModel()
+    let ids = model.trackIDs(for: .songs)
+    model.play(.songs, startingAt: ids[3])
+    model.player.seek(to: 42)
+    model.router.libraryPath = []
+    let loads = engine.setQueueCount
+    model.play(.recentlyAdded, startingAt: ids[3])
+    #expect(engine.setQueueCount == loads)
+    #expect(engine.currentTime == 42)
+    #expect(model.player.queue.mode == .songs)
+    #expect(model.router.isShowingNowPlaying)
+  }
+
+  /// A paused song isn't playing, so picking it plays it.
+  @Test func pickingThePausedSongPlaysIt() async throws {
+    let model = try await loadedModel()
+    let ids = model.trackIDs(for: .songs)
+    model.play(.songs, startingAt: ids[3])
+    model.player.pause()
+    let loads = engine.setQueueCount
+    model.play(.recentlyAdded, startingAt: ids[3])
+    #expect(engine.setQueueCount == loads + 1)
+    #expect(engine.isPlaying)
+    #expect(model.player.queue.mode == .recentlyAdded)
+  }
+
   @Test func playNextDoesNotNavigate() async throws {
     let model = try await loadedModel()
     model.playNext(.track(model.trackIDs(for: .songs)[0]))

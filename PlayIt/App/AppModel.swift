@@ -153,7 +153,15 @@ final class AppModel {
   // MARK: - Queue actions
 
   /// Makes `ref` the new mode, optionally starting at one of its tracks.
+  ///
+  /// Picking the song that's playing just shows Now Playing; it doesn't
+  /// restart the song. (A paused song isn't playing, so it plays.)
   func play(_ ref: MediaRef, startingAt trackID: Track.ID? = nil) {
+    let picked: Track.ID? = if case .track(let id) = ref { id } else { trackID }
+    if let picked, picked == player.queue.current, player.isPlaying {
+      router.showNowPlaying()
+      return
+    }
     let ids = trackIDs(for: ref)
     guard !ids.isEmpty else { return }
     let start = trackID.flatMap { ids.firstIndex(of: $0) } ?? 0

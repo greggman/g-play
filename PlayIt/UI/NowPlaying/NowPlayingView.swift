@@ -72,7 +72,7 @@ private struct NowPlayingHeader: View {
   @Environment(PlayerController.self) private var player
   @Environment(Router.self) private var router
   @Environment(\.dismiss) private var dismiss
-  /// How far the artwork has been dragged left.
+  /// How far the page has been dragged left (by dragging the artwork).
   @State private var artworkDrag: CGFloat = 0
 
   /// Dragging the artwork left this far goes back.
@@ -89,7 +89,6 @@ private struct NowPlayingHeader: View {
       LargeArtworkView(trackID: track.id)
         .frame(maxWidth: 360)
         .contentShape(Rectangle())
-        .offset(x: artworkDrag)
         // Drag left to go back, so going back doesn't need a reach to the
         // far side of the screen. Tapping does nothing.
         .gesture(
@@ -136,6 +135,8 @@ private struct NowPlayingHeader: View {
     }
     .padding(.vertical)
     .frame(maxWidth: .infinity)
+    // The whole page follows a drag on the artwork.
+    .offset(x: artworkDrag)
   }
 }
 
