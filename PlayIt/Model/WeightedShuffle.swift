@@ -28,17 +28,58 @@ enum WeightedShuffle {
     recentlyPlayed: [Track.ID: Date] = [:],
     using rng: inout R
   ) -> [Track.ID] {
-    var keyed: [(key: Double, id: Track.ID)] = []
-    keyed.reserveCapacity(tracks.count)
-    for track in tracks {
-      let lastPlayed = [track.lastPlayedDate, recentlyPlayed[track.id]].compactMap { $0 }.max()
-      let w = weight(lastPlayed: lastPlayed, now: now)
-      // u in (0, 1]
-      let u = 1 - Double.random(in: 0..<1, using: &rng)
-      keyed.append((log(u) / w, track.id))
-    }
+    var keyed = tracks.map { (key: key(for: $0, now: now, recentlyPlayed: recentlyPlayed, using: &rng), id: $0.id) }
     keyed.sort { $0.key > $1.key }
     return keyed.map(\.id)
+  }
+
+  /// Shuffles `newTracks` into `order` without changing the order of the
+  /// tracks already there, placing them as if everything had been shuffled
+  /// together: keys drawn for the existing tracks are sorted and handed out
+  /// in their existing order, and each new track goes where its key falls.
+  /// So never-played tracks tend to land early.
+  static func merge<R: RandomNumberGenerator>(
+    _ newTracks: [Track],
+    into order: [Track],
+    now: Date = .now,
+    recentlyPlayed: [Track.ID: Date] = [:],
+    using rng: inout R
+  ) -> [Track.ID] {
+    let existingKeys = order.map { key(for: $0, now: now, recentlyPlayed: recentlyPlayed, using: &rng) }
+      .sorted(by: >)
+    let added = newTracks.map { (key: key(for: $0, now: now, recentlyPlayed: recentlyPlayed, using: &rng), id: $0.id) }
+      .sorted { $0.key > $1.key }
+    var result: [Track.ID] = []
+    result.reserveCapacity(order.count + added.count)
+    var next = 0
+    for (track, key) in zip(order, existingKeys) {
+      while next < added.count && added[next].key > key {
+        result.append(added[next].id)
+        next += 1
+      }
+      result.append(track.id)
+    }
+    result.append(contentsOf: added[next...].map(\.id))
+    return result
+  }
+
+  static func merge(
+    _ newTracks: [Track],
+    into order: [Track],
+    now: Date = .now,
+    recentlyPlayed: [Track.ID: Date] = [:]
+  ) -> [Track.ID] {
+    var rng = SystemRandomNumberGenerator()
+    return merge(newTracks, into: order, now: now, recentlyPlayed: recentlyPlayed, using: &rng)
+  }
+
+  /// `log(u) / w` for u in (0, 1].
+  private static func key<R: RandomNumberGenerator>(
+    for track: Track, now: Date, recentlyPlayed: [Track.ID: Date], using rng: inout R
+  ) -> Double {
+    let lastPlayed = [track.lastPlayedDate, recentlyPlayed[track.id]].compactMap { $0 }.max()
+    let u = 1 - Double.random(in: 0..<1, using: &rng)
+    return log(u) / weight(lastPlayed: lastPlayed, now: now)
   }
 
   static func order(

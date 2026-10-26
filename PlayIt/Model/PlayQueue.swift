@@ -32,14 +32,46 @@ struct PlayQueue: Hashable, Sendable, Codable {
   private(set) var current: Track.ID?
   private(set) var currentSource: Source = .mode
   private(set) var history: [Track.ID] = []
+  /// Optional so state saved before shuffles existed still loads.
+  private var shuffled: Bool?
+  /// The library-wide shuffle while another mode plays, so Shuffle All can
+  /// pick up where it left off.
+  private(set) var savedLibraryShuffle: SavedShuffle?
+
+  /// A shuffle's order and where to resume it.
+  struct SavedShuffle: Hashable, Sendable, Codable {
+    var trackIDs: [Track.ID]
+    /// The track to resume at.
+    var index: Int
+  }
 
   static let maxHistory = 500
 
   init() {}
 
-  /// Mode tracks that have not been played yet.
-  var upcomingModeTrackIDs: ArraySlice<Track.ID> {
-    modeTrackIDs[min(modeIndex, modeTrackIDs.count)...]
+  /// A shuffled mode keeps its order: when it ends it starts over in the same
+  /// order, so every track plays once per time through. Only a reshuffle
+  /// changes the order.
+  var isShuffled: Bool { shuffled == true }
+
+  /// Index into `modeTrackIDs` of the current track if it came from the
+  /// mode, otherwise of the next mode track to play. Tracks before it have
+  /// been played (this time through).
+  var modePosition: Int {
+    current != nil && currentSource == .mode ? max(0, modeIndex - 1) : modeIndex
+  }
+
+  /// Mode tracks still to play, in order. A shuffle continues from its
+  /// start.
+  var upcomingModeTrackIDs: [Track.ID] {
+    let split = min(modeIndex, modeTrackIDs.count)
+    let rest = modeTrackIDs[split...]
+    return isShuffled ? Array(rest + modeTrackIDs[..<split]) : Array(rest)
+  }
+
+  /// The library-wide shuffle's order, whether it's playing or saved.
+  var libraryShuffleTrackIDs: [Track.ID]? {
+    mode == .allTracks ? modeTrackIDs : savedLibraryShuffle?.trackIDs
   }
 
   /// Everything that will play after `current`, in order.
@@ -50,10 +82,18 @@ struct PlayQueue: Hashable, Sendable, Codable {
   // MARK: - Queue actions
 
   /// Make `trackIDs` the new mode, clear the top queue, and start playing at
-  /// `startIndex`.
-  mutating func play(mode: PlayMode, trackIDs: [Track.ID], startIndex: Int = 0) {
+  /// `startIndex`. Leaving the library-wide shuffle saves it; starting a new
+  /// one replaces it.
+  mutating func play(mode: PlayMode, trackIDs: [Track.ID], startIndex: Int = 0, shuffled: Bool = false) {
+    if self.mode == .allTracks, mode != .allTracks, !modeTrackIDs.isEmpty {
+      savedLibraryShuffle = SavedShuffle(
+        trackIDs: modeTrackIDs, index: modePosition < modeTrackIDs.count ? modePosition : 0)
+    } else if mode == .allTracks {
+      savedLibraryShuffle = nil
+    }
     pushCurrentToHistory()
     self.mode = mode
+    self.shuffled = shuffled
     modeTrackIDs = trackIDs
     topQueue.removeAll()
     if trackIDs.indices.contains(startIndex) {
@@ -63,6 +103,52 @@ struct PlayQueue: Hashable, Sendable, Codable {
     } else {
       current = nil
       modeIndex = trackIDs.count
+    }
+  }
+
+  /// Goes back to the saved library-wide shuffle, starting at the track that
+  /// was playing when it was left. Returns false if there isn't one.
+  mutating func resumeLibraryShuffle() -> Bool {
+    guard let saved = savedLibraryShuffle else { return false }
+    play(mode: .allTracks, trackIDs: saved.trackIDs, startIndex: saved.index, shuffled: true)
+    return true
+  }
+
+  /// Gives the mode a new order. The current track keeps playing; if it's
+  /// from the mode it goes first, so everything else follows it.
+  mutating func reshuffle(_ order: [Track.ID]) {
+    if let current, currentSource == .mode, let index = order.firstIndex(of: current) {
+      var order = order
+      order.remove(at: index)
+      modeTrackIDs = [current] + order
+      modeIndex = 1
+    } else {
+      modeTrackIDs = order
+      modeIndex = 0
+    }
+  }
+
+  /// Plays the mode track at `index` now. The mode carries on from there;
+  /// the top queue is kept.
+  mutating func jump(toModeIndex index: Int) {
+    guard modeTrackIDs.indices.contains(index) else { return }
+    pushCurrentToHistory()
+    current = modeTrackIDs[index]
+    currentSource = .mode
+    modeIndex = index + 1
+  }
+
+  /// Replaces what's still to come in the library-wide shuffle, playing or
+  /// saved, e.g. to add songs new to the library. Tracks up to and including
+  /// the current (or saved) one stay put.
+  mutating func updateLibraryShuffleUpcoming(_ change: ([Track.ID]) -> [Track.ID]) {
+    if mode == .allTracks {
+      let split = min(modeIndex, modeTrackIDs.count)
+      modeTrackIDs = Array(modeTrackIDs[..<split]) + change(Array(modeTrackIDs[split...]))
+    } else if var saved = savedLibraryShuffle {
+      let split = min(saved.index + 1, saved.trackIDs.count)
+      saved.trackIDs = Array(saved.trackIDs[..<split]) + change(Array(saved.trackIDs[split...]))
+      savedLibraryShuffle = saved
     }
   }
 
@@ -95,7 +181,8 @@ struct PlayQueue: Hashable, Sendable, Codable {
     if !topQueue.isEmpty {
       current = topQueue.removeFirst().trackID
       currentSource = .topQueue
-    } else if modeIndex < modeTrackIDs.count {
+    } else if !modeTrackIDs.isEmpty && (modeIndex < modeTrackIDs.count || isShuffled) {
+      if modeIndex >= modeTrackIDs.count { modeIndex = 0 }
       current = modeTrackIDs[modeIndex]
       currentSource = .mode
       modeIndex += 1
@@ -146,12 +233,18 @@ struct PlayQueue: Hashable, Sendable, Codable {
 
   /// Drops tracks that no longer exist in the library.
   mutating func removeTracks(notIn valid: Set<Track.ID>) {
-    let upcoming = Array(upcomingModeTrackIDs).filter(valid.contains)
-    let played = modeTrackIDs[..<min(modeIndex, modeTrackIDs.count)].filter(valid.contains)
+    let split = min(modeIndex, modeTrackIDs.count)
+    let upcoming = modeTrackIDs[split...].filter(valid.contains)
+    let played = modeTrackIDs[..<split].filter(valid.contains)
     modeTrackIDs = played + upcoming
     modeIndex = played.count
     topQueue.removeAll { !valid.contains($0.trackID) }
     history.removeAll { !valid.contains($0) }
+    if let saved = savedLibraryShuffle {
+      let kept = saved.trackIDs.filter(valid.contains)
+      let index = saved.trackIDs[..<min(saved.index, saved.trackIDs.count)].filter(valid.contains).count
+      savedLibraryShuffle = kept.isEmpty ? nil : SavedShuffle(trackIDs: kept, index: min(index, kept.count - 1))
+    }
     if let current, !valid.contains(current) {
       self.current = nil
       advance()
@@ -167,7 +260,9 @@ struct PlayQueue: Hashable, Sendable, Codable {
   @discardableResult
   mutating func sync(toPlaying trackID: Track.ID?) -> Bool {
     guard let trackID else {
-      // The engine ran out of tracks.
+      // The engine ran out of tracks. A shuffle never runs out, and the
+      // engine only holds part of it, so where it stopped isn't known.
+      if isShuffled { return false }
       while current != nil { advance() }
       return true
     }

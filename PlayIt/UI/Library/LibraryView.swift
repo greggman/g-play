@@ -38,7 +38,10 @@ struct LibraryView: View {
           Label("Shuffle All", systemImage: "shuffle")
             .font(.headline)
         }
-        .accessibilityHint("Plays every song, favoring ones you haven't heard recently")
+        .accessibilityHint("Plays every song in a shuffled order, favoring ones you haven't heard recently. Picks up where it left off.")
+        .contextMenu {
+          Button("Reshuffle All", systemImage: "shuffle") { model.reshuffleAll() }
+        }
       }
 
       switch sort {

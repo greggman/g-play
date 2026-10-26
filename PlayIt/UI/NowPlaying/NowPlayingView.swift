@@ -32,27 +32,40 @@ struct NowPlayingView: View {
 }
 
 /// The queue: songs queued with Play Next / Play Later (reorderable,
-/// deletable), then what's next from the current mode.
+/// deletable), then the whole mode in play order, scrolled to where it's up
+/// to. Tap a song in the mode to carry on from there.
 struct UpNextView: View {
   @Environment(PlayerController.self) private var player
+  /// Edit mode is only for reordering the queued songs: while it's on, the
+  /// mode's rows can't be tapped.
+  @State private var editMode = EditMode.inactive
 
   var body: some View {
-    List {
-      UpNextSections()
+    ScrollViewReader { proxy in
+      List {
+        UpNextSections()
+      }
+      .onAppear {
+        guard !player.queue.modeTrackIDs.isEmpty else { return }
+        proxy.scrollTo(UpNextSections.modeRowID(player.queue.modePosition), anchor: .top)
+      }
     }
     .listStyle(.plain)
-    .environment(\.editMode, .constant(.active))
+    .environment(\.editMode, $editMode)
     .navigationTitle("Up Next")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       if !player.queue.topQueue.isEmpty {
         ToolbarItem(placement: .primaryAction) {
-          Button("Clear Queued") { player.clearTopQueue() }
+          EditButton()
         }
       }
     }
+    .onChange(of: player.queue.topQueue.isEmpty) { _, isEmpty in
+      if isEmpty { editMode = .inactive }
+    }
     .overlay {
-      if player.queue.upcomingTrackIDs.isEmpty {
+      if player.queue.topQueue.isEmpty && player.queue.modeTrackIDs.isEmpty {
         ContentUnavailableView("Nothing Up Next", systemImage: "list.bullet")
       }
     }
@@ -68,10 +81,12 @@ private struct NowPlayingHeader: View {
   var body: some View {
     VStack(spacing: 20) {
       if let mode = player.queue.mode {
-        Text("Playing from \(model.title(for: mode))")
+        Button("Playing from \(model.title(for: mode))") { router.show(.upNext) }
           .font(.footnote)
           .foregroundStyle(.secondary)
           .lineLimit(1)
+          .buttonStyle(.borderless)
+          .accessibilityHint("Shows the play order")
       }
       LargeArtworkView(trackID: track.id)
         .frame(maxWidth: 360)
@@ -231,18 +246,19 @@ struct TransportControls: View {
   }
 }
 
-/// The top queue (reorderable, deletable) followed by what's next from the
-/// mode.
+/// The top queue (reorderable, deletable) followed by the mode in play
+/// order, with the tracks already played this time through dimmed.
 private struct UpNextSections: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerController.self) private var player
 
-  static let modePreviewCount = 50
+  /// Mode rows are identified by position (a playlist can repeat a track).
+  static func modeRowID(_ index: Int) -> String { "mode-\(index)" }
 
   var body: some View {
     let topQueue = player.topQueueTracks
     if !topQueue.isEmpty {
-      Section("Queued") {
+      Section {
         ForEach(topQueue, id: \.entry.id) { item in
           TrackRow(track: item.track)
             .compactRowInsets()
@@ -250,20 +266,46 @@ private struct UpNextSections: View {
         }
         .onMove { player.moveInTopQueue(fromOffsets: $0, toOffset: $1) }
         .onDelete { player.removeFromTopQueue(at: $0) }
+      } header: {
+        HStack {
+          Text("Queued")
+          Spacer()
+          Button("Clear") { player.clearTopQueue() }
+            .font(.subheadline)
+            .textCase(nil)
+            .accessibilityLabel("Clear Queued")
+        }
       }
     }
-    let upcoming = player.upcomingModeTracks(limit: Self.modePreviewCount)
-    if let mode = player.queue.mode, !upcoming.isEmpty {
+    let modeTrackIDs = player.queue.modeTrackIDs
+    if let mode = player.queue.mode, !modeTrackIDs.isEmpty {
+      let position = player.queue.modePosition
       Section {
-        ForEach(Array(upcoming.enumerated()), id: \.offset) { _, track in
-          TrackRow(track: track)
-            .compactRowInsets()
-            .contextMenu { MediaMenu(ref: .track(track.id)) }
-            .deleteDisabled(true)
-            .moveDisabled(true)
+        ForEach(modeTrackIDs.indices, id: \.self) { index in
+          if let track = model.track(modeTrackIDs[index]) {
+            Button { player.jump(toModeIndex: index) } label: { TrackRow(track: track) }
+              .buttonStyle(.plain)
+              .opacity(index < position ? 0.5 : 1)
+              .compactRowInsets()
+              .contextMenu { MediaMenu(ref: .track(track.id)) }
+              .deleteDisabled(true)
+              .moveDisabled(true)
+              .id(Self.modeRowID(index))
+          }
         }
       } header: {
-        Text("Playing from \(model.title(for: mode))")
+        HStack {
+          Text("Playing from \(model.title(for: mode))")
+            .lineLimit(1)
+          Spacer()
+          if player.queue.isShuffled {
+            Button("Reshuffle", systemImage: "shuffle") { player.reshuffle() }
+              .labelStyle(.titleAndIcon)
+              .font(.subheadline)
+              .textCase(nil)
+              .accessibilityHint("Plays these songs in a new order after this one")
+          }
+        }
       }
     }
   }

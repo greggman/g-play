@@ -27,7 +27,6 @@ struct TrackRow: View {
   var detail: String?
 
   @Environment(PlayerController.self) private var player
-  @Environment(Router.self) private var router
   @ScaledMetric(relativeTo: .body) private var artworkSize = 44
 
   var body: some View {
@@ -45,7 +44,10 @@ struct TrackRow: View {
           .foregroundStyle(isCurrent ? Color.accentColor : .primary)
           .lineLimit(1)
         HStack(spacing: 4) {
-          ArtistLink(name: track.artist, id: track.artistID)
+          // Plain text: tapping anywhere on a row plays it. (Go to Artist is
+          // in the long-press menu.)
+          Text(track.artist)
+            .foregroundStyle(.secondary)
             .lineLimit(1)
           if let detail {
             Text("· \(detail)")
@@ -64,8 +66,6 @@ struct TrackRow: View {
     }
     .contentShape(Rectangle())
     .accessibilityElement(children: .combine)
-    // The artist link isn't reachable inside the combined element.
-    .accessibilityAction(named: "Go to Artist") { router.show(.artist(track.artistID)) }
     .accessibilityIdentifier("TrackRow")
   }
 

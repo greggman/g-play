@@ -181,6 +181,11 @@ final class AppModel {
     router.showNowPlaying()
   }
 
+  func reshuffleAll() {
+    player.reshuffleAll()
+    router.showNowPlaying()
+  }
+
   /// Makes `ref` the new mode, in weighted-shuffle order.
   func shuffle(_ ref: MediaRef) {
     let ids = trackIDs(for: ref)

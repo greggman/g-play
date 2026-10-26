@@ -167,11 +167,115 @@ struct PlayQueueTests {
     #expect(q.upcomingTrackIDs.isEmpty)
   }
 
+  @Test func unshuffledModeEnds() {
+    var q = queue(mode: [1, 2])
+    q.advance()
+    #expect(q.advance() == nil)
+  }
+
+  @Test func shuffleStartsOverInSameOrder() {
+    var q = PlayQueue()
+    q.play(mode: .allTracks, trackIDs: [3, 1, 2], shuffled: true)
+    #expect(q.upcomingTrackIDs == [1, 2, 3])
+    q.advance()
+    q.advance()
+    #expect(q.advance() == 3)
+    #expect(q.advance() == 1)
+    #expect(q.modePosition == 1)
+    #expect(q.upcomingTrackIDs == [2, 3, 1])
+  }
+
+  @Test func syncToNilLeavesShuffle() {
+    var q = PlayQueue()
+    q.play(mode: .allTracks, trackIDs: [1, 2], shuffled: true)
+    let ok = q.sync(toPlaying: nil)
+    #expect(!ok)
+    #expect(q.current == 1)
+  }
+
+  @Test func jumpCarriesOnFromThere() {
+    var q = queue(mode: [1, 2, 3, 4, 5])
+    q.playLater([9])
+    q.jump(toModeIndex: 3)
+    #expect(q.current == 4)
+    #expect(q.modePosition == 3)
+    #expect(q.history == [1])
+    #expect(q.upcomingTrackIDs == [9, 5])
+  }
+
+  @Test func modePositionWhilePlayingFromTopQueue() {
+    var q = queue(mode: [1, 2, 3])
+    q.playNow([9])
+    // 1 was played; 2 is next.
+    #expect(q.modePosition == 1)
+  }
+
+  @Test func reshuffleKeepsCurrentFirst() {
+    var q = PlayQueue()
+    q.play(mode: .allTracks, trackIDs: [1, 2, 3, 4], shuffled: true)
+    q.advance()
+    q.reshuffle([4, 3, 2, 1])
+    #expect(q.current == 2)
+    #expect(q.modeTrackIDs == [2, 4, 3, 1])
+    #expect(q.upcomingTrackIDs == [4, 3, 1, 2])
+  }
+
+  @Test func libraryShuffleIsSavedAndResumed() {
+    var q = PlayQueue()
+    q.play(mode: .allTracks, trackIDs: [5, 6, 7, 8], shuffled: true)
+    q.advance()
+    q.play(mode: .album(1), trackIDs: [1, 2])
+    #expect(q.savedLibraryShuffle == .init(trackIDs: [5, 6, 7, 8], index: 1))
+    q.play(mode: .artist(1), trackIDs: [3])
+    let resumed = q.resumeLibraryShuffle()
+    #expect(resumed)
+    #expect(q.mode == .allTracks)
+    #expect(q.isShuffled)
+    #expect(q.current == 6)
+    #expect(q.savedLibraryShuffle == nil)
+    #expect(q.upcomingTrackIDs == [7, 8, 5, 6])
+  }
+
+  @Test func newLibraryShuffleReplacesSaved() {
+    var q = PlayQueue()
+    q.play(mode: .allTracks, trackIDs: [5, 6], shuffled: true)
+    q.play(mode: .album(1), trackIDs: [1])
+    q.play(mode: .allTracks, trackIDs: [6, 5], shuffled: true)
+    q.play(mode: .album(1), trackIDs: [1])
+    #expect(q.savedLibraryShuffle?.trackIDs == [6, 5])
+  }
+
+  @Test func removeTracksFromSavedShuffle() {
+    var q = PlayQueue()
+    q.play(mode: .allTracks, trackIDs: [5, 6, 7, 8], startIndex: 2, shuffled: true)
+    q.play(mode: .album(1), trackIDs: [1])
+    q.removeTracks(notIn: [1, 6, 7, 8])
+    #expect(q.savedLibraryShuffle == .init(trackIDs: [6, 7, 8], index: 1))
+  }
+
+  @Test func updateLibraryShuffleUpcoming() {
+    var q = PlayQueue()
+    q.play(mode: .allTracks, trackIDs: [5, 6, 7], shuffled: true)
+    q.updateLibraryShuffleUpcoming { [9] + $0 }
+    #expect(q.modeTrackIDs == [5, 9, 6, 7])
+    q.play(mode: .album(1), trackIDs: [1])
+    q.updateLibraryShuffleUpcoming { $0 + [10] }
+    #expect(q.savedLibraryShuffle?.trackIDs == [5, 9, 6, 7, 10])
+    #expect(q.libraryShuffleTrackIDs == [5, 9, 6, 7, 10])
+  }
+
   @Test func codableRoundTrip() throws {
     var q = queue(mode: [1, 2, 3])
     q.playLater([10])
     q.advance()
     let decoded = try JSONDecoder().decode(PlayQueue.self, from: JSONEncoder().encode(q))
     #expect(decoded == q)
+  }
+
+  @Test func loadsStateSavedBeforeShuffles() throws {
+    let json = #"{"modeTrackIDs":[1,2],"modeIndex":1,"topQueue":[],"current":1,"currentSource":{"mode":{}},"history":[],"mode":{"album":{"_0":1}}}"#
+    let q = try JSONDecoder().decode(PlayQueue.self, from: Data(json.utf8))
+    #expect(q.current == 1)
+    #expect(!q.isShuffled)
   }
 }

@@ -126,6 +126,44 @@ struct PlayerControllerTests {
     #expect(Set(player.queue.modeTrackIDs) == Set(1...10))
   }
 
+  @Test func shuffleAllPicksUpWhereItLeftOff() {
+    let player = makePlayer()
+    player.shuffleAll()
+    player.next()
+    let order = player.queue.modeTrackIDs
+    player.play(mode: .album(1), trackIDs: [1, 2])
+    player.shuffleAll()
+    #expect(player.queue.modeTrackIDs == order)
+    #expect(player.queue.current == order[1])
+    #expect(engine.currentTrackID == order[1])
+    player.reshuffleAll()
+    // Reshuffling keeps the current song playing.
+    #expect(engine.currentTrackID == order[1])
+    #expect(player.queue.modeTrackIDs.first == order[1])
+  }
+
+  @Test func jumpPlaysThatTrack() {
+    let player = makePlayer()
+    player.play(mode: .album(1), trackIDs: [1, 2, 3, 4])
+    player.jump(toModeIndex: 2)
+    #expect(engine.currentTrackID == 3)
+    #expect(engine.upcoming == [4])
+  }
+
+  @Test func newSongsGoIntoTheShuffleAfterTheCurrentOne() {
+    let player = makePlayer()
+    player.shuffleAll()
+    let before = player.queue.modeTrackIDs
+    let bigger = LibrarySnapshot(
+      tracks: (1...12).map { makeTrack(UInt64($0), number: $0) }, systemPlaylists: [])
+    player.libraryDidLoad(bigger)
+    let after = player.queue.modeTrackIDs
+    #expect(after.count == 12)
+    #expect(after.first == before.first)
+    #expect(after.filter { $0 <= 10 } == before)
+    #expect(Set(engine.upcoming).isSuperset(of: [11, 12]))
+  }
+
   @Test func restoresSavedStatePaused() {
     let store = StateStore(directory: URL.temporaryDirectory.appending(path: UUID().uuidString))
     defer { store.reset() }

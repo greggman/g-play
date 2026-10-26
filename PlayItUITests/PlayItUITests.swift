@@ -42,13 +42,13 @@ final class PlayItUITests: XCTestCase {
   /// the mini player then returns to it.
   func testShuffleAllShowsNowPlaying() {
     app.buttons["Shuffle All"].tap()
-    XCTAssertTrue(app.staticTexts["Playing from Shuffle All"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["Playing from Shuffle All"].waitForExistence(timeout: 5))
     XCTAssertFalse(miniPlayer.exists)
     goBack()
     XCTAssertTrue(app.navigationBars["Library"].waitForExistence(timeout: 5))
     XCTAssertTrue(miniPlayer.waitForExistence(timeout: 5))
     miniPlayer.tap()
-    XCTAssertTrue(app.staticTexts["Playing from Shuffle All"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["Playing from Shuffle All"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.sliders["Playback position"].exists)
     let playPause = app.buttons["NowPlayingPlayPause"]
     XCTAssertEqual(playPause.label, "Pause")
@@ -87,26 +87,40 @@ final class PlayItUITests: XCTestCase {
     XCTAssertEqual(elapsed.count, 2)
     XCTAssertGreaterThanOrEqual(elapsed[0] * 60 + elapsed[1], 90)
     XCTAssertTrue(app.navigationBars["Now Playing"].exists)
-    // Also a drag across an empty part of the screen, below the controls.
-    let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.95))
-    start.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.95)))
-    sleep(1)
-    XCTAssertTrue(app.navigationBars["Now Playing"].exists)
   }
 
-  func testDraggingArtworkLeftGoesBack() {
+  /// Swiping right on the page (here, the artwork) goes back.
+  func testSwipeRightGoesBack() {
     app.buttons["Shuffle All"].tap()
     let artwork = app.descendants(matching: .any)["Album artwork"]
     XCTAssertTrue(artwork.waitForExistence(timeout: 5))
-    // A tap does nothing, and a short drag springs back.
-    artwork.tap()
-    artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5))
-      .press(forDuration: 0.05, thenDragTo: artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
-    sleep(1)
-    XCTAssertTrue(app.navigationBars["Now Playing"].exists)
-    artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5))
-      .press(forDuration: 0.05, thenDragTo: artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)))
+    artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5))
+      .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)))
     XCTAssertTrue(app.navigationBars["Library"].waitForExistence(timeout: 5))
+  }
+
+  /// Up Next shows the whole shuffle; tapping a song plays it.
+  func testTapSongInUpNextPlaysIt() {
+    app.buttons["Shuffle All"].tap()
+    app.buttons["Playing from Shuffle All"].tap()
+    XCTAssertTrue(app.buttons["Reshuffle"].waitForExistence(timeout: 5))
+    // The current song is first in view; tap one a few rows below it, near
+    // the start of its title.
+    let cell = app.cells.element(boundBy: 3)
+    let title = cell.staticTexts.firstMatch.label
+    cell.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 90, dy: 12)).tap()
+    goBack()
+    XCTAssertTrue(app.buttons["Reshuffle"].waitForNonExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 5), title)
+  }
+
+  /// Anywhere on a song plays it, even just above the artist name.
+  func testTapSongTitlePlaysIt() {
+    app.buttons["Added"].tap()
+    let row = firstTrackRow
+    XCTAssertTrue(row.waitForExistence(timeout: 5))
+    row.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 90, dy: 10)).tap()
+    XCTAssertTrue(app.navigationBars["Now Playing"].waitForExistence(timeout: 5))
   }
 
   func testLongPressAlwaysOffersCopy() {

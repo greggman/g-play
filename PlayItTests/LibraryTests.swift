@@ -53,6 +53,16 @@ struct WeightedShuffleTests {
     #expect(order.prefix(100).filter { $0 >= 500 }.count > 95)
   }
 
+  @Test func mergeKeepsOrderAndPutsNeverPlayedEarly() {
+    let existing = (0..<500).map { makeTrack(UInt64($0), lastPlayed: now) }
+    let new = (500..<550).map { makeTrack(UInt64($0)) }
+    var rng = SplitMix64(seed: 5)
+    let order = WeightedShuffle.merge(new, into: existing, now: now, using: &rng)
+    #expect(order.count == 550)
+    #expect(order.filter { $0 < 500 } == existing.map(\.id))
+    #expect(order.prefix(100).filter { $0 >= 500 }.count > 45)
+  }
+
   @Test func recentlyPlayedOverridesLibraryDate() {
     let tracks = (0..<200).map { makeTrack(UInt64($0), lastPlayed: nil) }
     let played = Dictionary(uniqueKeysWithValues: (0..<100).map { (UInt64($0), now) })

@@ -75,13 +75,13 @@
     "Artists" : {
 
     },
-    "Back" : {
-
-    },
     "Cancel" : {
 
     },
     "Choose something from your library, or Shuffle All." : {
+
+    },
+    "Clear" : {
 
     },
     "Clear Queued" : {
@@ -112,9 +112,6 @@
 
     },
     "Find songs by title, artist or album." : {
-
-    },
-    "Go Back" : {
 
     },
     "Go to Album" : {
@@ -198,7 +195,10 @@
     "Playlists from the Music app can't be edited here. Duplicate one to make an editable copy." : {
 
     },
-    "Plays every song, favoring ones you haven't heard recently" : {
+    "Plays every song in a shuffled order, favoring ones you haven't heard recently. Picks up where it left off." : {
+
+    },
+    "Plays these songs in a new order after this one" : {
 
     },
     "Previous Track" : {
@@ -219,6 +219,12 @@
     "Rename Playlist" : {
 
     },
+    "Reshuffle" : {
+
+    },
+    "Reshuffle All" : {
+
+    },
     "Search" : {
 
     },
@@ -229,6 +235,9 @@
 
     },
     "Shows the album" : {
+
+    },
+    "Shows the play order" : {
 
     },
     "Shows this artist" : {

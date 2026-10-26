@@ -55,10 +55,6 @@ final class PlayerController {
     queue.topQueue.compactMap { entry in snapshot.tracks[entry.trackID].map { (entry, $0) } }
   }
 
-  func upcomingModeTracks(limit: Int) -> [Track] {
-    snapshot.tracks(queue.upcomingModeTrackIDs.prefix(limit))
-  }
-
   // MARK: - Library
 
   /// Called whenever the library is (re)loaded. The first call restores the
@@ -71,6 +67,7 @@ final class PlayerController {
       queue = saved.queue
       recentlyPlayed = saved.recentlyPlayed
       queue.removeTracks(notIn: Set(snapshot.tracks.keys))
+      addNewTracksToLibraryShuffle()
       if engine.isPlaying, queue.sync(toPlaying: engine.currentTrackID) {
         // The system player kept playing while the app wasn't running.
         engine.setUpcoming(upcomingTracks())
@@ -79,6 +76,7 @@ final class PlayerController {
       }
     } else {
       queue.removeTracks(notIn: Set(snapshot.tracks.keys))
+      addNewTracksToLibraryShuffle()
       if queue.current != before { reloadEngine(play: isPlaying) } else { engine.setUpcoming(upcomingTracks()) }
     }
     stateChanged()
@@ -117,16 +115,47 @@ final class PlayerController {
     mutate { $0.clearTopQueue() }
   }
 
-  /// Weighted shuffle of the whole library.
+  /// Weighted shuffle of the whole library. Picks up the last one where it
+  /// left off; only `reshuffleAll` starts a new order.
   func shuffleAll() {
-    shuffle(mode: .allTracks, trackIDs: Array(snapshot.tracks.keys))
+    if queue.mode == .allTracks {
+      if !isPlaying { play() }
+    } else if queue.resumeLibraryShuffle() {
+      reloadEngine(play: true)
+      stateChanged()
+    } else {
+      shuffle(mode: .allTracks, trackIDs: Array(snapshot.tracks.keys))
+    }
+  }
+
+  /// A new weighted shuffle of the whole library.
+  func reshuffleAll() {
+    if queue.mode == .allTracks {
+      reshuffle()
+    } else {
+      shuffle(mode: .allTracks, trackIDs: Array(snapshot.tracks.keys))
+    }
   }
 
   /// Starts `mode` with its tracks in weighted-shuffle order, favoring ones
   /// not played recently. Clears the top queue.
   func shuffle(mode: PlayMode, trackIDs: [Track.ID]) {
     let order = WeightedShuffle.order(snapshot.tracks(trackIDs), recentlyPlayed: recentlyPlayed)
-    play(mode: mode, trackIDs: order)
+    queue.play(mode: mode, trackIDs: order, shuffled: true)
+    reloadEngine(play: true)
+    stateChanged()
+  }
+
+  /// A new order for a shuffled mode, without interrupting the current track.
+  func reshuffle() {
+    guard queue.isShuffled else { return }
+    let order = WeightedShuffle.order(snapshot.tracks(queue.modeTrackIDs), recentlyPlayed: recentlyPlayed)
+    mutate { $0.reshuffle(order) }
+  }
+
+  /// Plays the mode track at `index`; the mode carries on from there.
+  func jump(toModeIndex index: Int) {
+    mutate(play: true) { $0.jump(toModeIndex: index) }
   }
 
   // MARK: - Transport
@@ -203,6 +232,18 @@ final class PlayerController {
       engine.setUpcoming(upcomingTracks())
     }
     stateChanged()
+  }
+
+  /// Shuffles songs new to the library into what's still to come in the
+  /// library-wide shuffle.
+  private func addNewTracksToLibraryShuffle() {
+    guard let ids = queue.libraryShuffleTrackIDs else { return }
+    let known = Set(ids)
+    let new = snapshot.tracks.values.filter { !known.contains($0.id) }
+    guard !new.isEmpty else { return }
+    queue.updateLibraryShuffleUpcoming { upcoming in
+      WeightedShuffle.merge(new, into: snapshot.tracks(upcoming), recentlyPlayed: recentlyPlayed)
+    }
   }
 
   private func upcomingTracks() -> [Track] {
