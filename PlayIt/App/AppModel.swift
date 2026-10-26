@@ -173,6 +173,14 @@ final class AppModel {
     router.showNowPlaying()
   }
 
+  /// Makes `ref` the new mode, in weighted-shuffle order.
+  func shuffle(_ ref: MediaRef) {
+    let ids = trackIDs(for: ref)
+    guard !ids.isEmpty else { return }
+    player.shuffle(mode: mode(for: ref), trackIDs: ids)
+    router.showNowPlaying()
+  }
+
   // MARK: - Playlists
 
   @discardableResult

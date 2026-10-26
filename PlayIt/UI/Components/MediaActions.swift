@@ -47,6 +47,9 @@ struct QueueActionItems: View {
           model.play(ref)
         }
       }
+      if case .track = ref {} else {
+        Button("Shuffle", systemImage: "shuffle") { model.shuffle(ref) }
+      }
       Button("Play Now", systemImage: "play.circle") { model.playNow(ref) }
       Button("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward") { model.playNext(ref) }
       Button("Play Later", systemImage: "text.line.last.and.arrowtriangle.forward") { model.playLater(ref) }

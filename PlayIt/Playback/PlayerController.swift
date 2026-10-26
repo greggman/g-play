@@ -119,8 +119,14 @@ final class PlayerController {
 
   /// Weighted shuffle of the whole library.
   func shuffleAll() {
-    let order = WeightedShuffle.order(Array(snapshot.tracks.values), recentlyPlayed: recentlyPlayed)
-    play(mode: .allTracks, trackIDs: order)
+    shuffle(mode: .allTracks, trackIDs: Array(snapshot.tracks.keys))
+  }
+
+  /// Starts `mode` with its tracks in weighted-shuffle order, favoring ones
+  /// not played recently. Clears the top queue.
+  func shuffle(mode: PlayMode, trackIDs: [Track.ID]) {
+    let order = WeightedShuffle.order(snapshot.tracks(trackIDs), recentlyPlayed: recentlyPlayed)
+    play(mode: mode, trackIDs: order)
   }
 
   // MARK: - Transport

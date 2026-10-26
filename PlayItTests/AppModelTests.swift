@@ -43,6 +43,18 @@ struct AppModelTests {
     #expect(model.title(for: model.player.queue.mode!) == "Search “love”")
   }
 
+  @Test func shufflePlaylistPlaysAllOfItShuffled() async throws {
+    let model = try await loadedModel()
+    let playlist = try #require(model.snapshot.systemPlaylists.first)
+    let ids = model.trackIDs(for: .playlist(playlist.id))
+    model.shuffle(.playlist(playlist.id))
+    let queue = model.player.queue
+    #expect(queue.mode == .playlist(playlist.id))
+    #expect(queue.modeTrackIDs.sorted() == ids.sorted())
+    #expect(queue.modeTrackIDs != ids)
+    #expect(model.router.isShowingNowPlaying)
+  }
+
   @Test func playNextDoesNotNavigate() async throws {
     let model = try await loadedModel()
     model.playNext(.track(model.trackIDs(for: .songs)[0]))

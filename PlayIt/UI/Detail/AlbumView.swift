@@ -52,7 +52,7 @@ struct AlbumView: View {
   }
 }
 
-/// Play / Play Next / Play Later buttons for a detail header.
+/// Play, Shuffle and queue buttons for a detail header.
 struct PlayButtons: View {
   let ref: MediaRef
   @Environment(AppModel.self) private var model
@@ -66,10 +66,16 @@ struct PlayButtons: View {
         Label("Play", systemImage: "play.fill").frame(maxWidth: .infinity)
       }
       .buttonStyle(.borderedProminent)
+      Button { model.shuffle(ref) } label: {
+        Label("Shuffle", systemImage: "shuffle").frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.borderedProminent)
       Menu {
         QueueActionItems(ref: ref)
       } label: {
-        Label("Queue", systemImage: "text.line.first.and.arrowtriangle.forward").frame(maxWidth: .infinity)
+        Label("Queue", systemImage: "text.line.first.and.arrowtriangle.forward")
+          .labelStyle(.iconOnly)
+          .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
       }
       .buttonStyle(.bordered)
     }
