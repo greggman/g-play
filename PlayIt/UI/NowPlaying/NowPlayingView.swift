@@ -3,11 +3,11 @@ import SwiftUI
 struct NowPlayingView: View {
   @Environment(PlayerController.self) private var player
   @Environment(Router.self) private var router
-  @Environment(\.dismiss) private var dismiss
 
   /// Full screen, pushed onto the current tab like any other screen, so the
-  /// back button returns to where the user was. Just the player: the queue
-  /// is on its own screen, so nothing here competes with the slider's drag.
+  /// back button returns to where the user was. Swipe right anywhere (but
+  /// the position slider) to go back. Just the player: the queue is on its
+  /// own screen, so nothing here competes with the slider's drag.
   var body: some View {
     Group {
       if let track = player.currentTrack {
@@ -23,14 +23,7 @@ struct NowPlayingView: View {
     .navigationTitle("Now Playing")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
-    // Horizontal drags here are for the position slider, not for going
-    // back. Hiding the system back button turns off swipe-to-go-back, so
-    // put an identical one in its place.
-    .navigationBarBackButtonHidden()
     .toolbar {
-      ToolbarItem(placement: .topBarLeading) {
-        Button("Back", systemImage: "chevron.backward") { dismiss() }
-      }
       ToolbarItem(placement: .primaryAction) {
         Button("Up Next", systemImage: "list.bullet") { router.show(.upNext) }
       }
@@ -71,12 +64,6 @@ private struct NowPlayingHeader: View {
   @Environment(AppModel.self) private var model
   @Environment(PlayerController.self) private var player
   @Environment(Router.self) private var router
-  @Environment(\.dismiss) private var dismiss
-  /// How far the page has been dragged left (by dragging the artwork).
-  @State private var artworkDrag: CGFloat = 0
-
-  /// Dragging the artwork left this far goes back.
-  static let backDragDistance: CGFloat = 80
 
   var body: some View {
     VStack(spacing: 20) {
@@ -88,26 +75,8 @@ private struct NowPlayingHeader: View {
       }
       LargeArtworkView(trackID: track.id)
         .frame(maxWidth: 360)
-        .contentShape(Rectangle())
-        // Drag left to go back, so going back doesn't need a reach to the
-        // far side of the screen. Tapping does nothing.
-        .gesture(
-          DragGesture(minimumDistance: 20)
-            .onChanged { value in
-              guard abs(value.translation.width) > abs(value.translation.height) else { return }
-              artworkDrag = min(0, value.translation.width)
-            }
-            .onEnded { value in
-              if value.translation.width < -Self.backDragDistance
-                && abs(value.translation.width) > abs(value.translation.height) {
-                dismiss()
-              } else {
-                withAnimation(.spring(duration: 0.3)) { artworkDrag = 0 }
-              }
-            })
         .accessibilityElement()
         .accessibilityLabel("Album artwork")
-        .accessibilityAction(named: "Go Back") { dismiss() }
         .contextMenu {
           CopyMenuItems(trackTitle: track.title, artist: track.artist, album: track.album)
         }
@@ -135,8 +104,6 @@ private struct NowPlayingHeader: View {
     }
     .padding(.vertical)
     .frame(maxWidth: .infinity)
-    // The whole page follows a drag on the artwork.
-    .offset(x: artworkDrag)
   }
 }
 
@@ -144,7 +111,8 @@ private struct NowPlayingHeader: View {
 ///
 /// Touch or drag anywhere along the bar to seek. (A system `Slider` only
 /// moves if you start right on its small thumb, which at the start of a song
-/// sits against the screen edge.) Still a slider to VoiceOver.
+/// sits against the screen edge.) Drags here never start swipe-to-go-back.
+/// Still a slider to VoiceOver.
 struct PositionSlider: View {
   @Environment(PlayerController.self) private var player
   @State private var scrubPosition: TimeInterval?
@@ -176,6 +144,7 @@ struct PositionSlider: View {
               if let scrubPosition { player.seek(to: scrubPosition) }
               scrubPosition = nil
             })
+        .gesture(BlocksSwipeBack())
         .animation(.easeOut(duration: 0.15), value: isScrubbing)
       }
       .frame(height: 44)
@@ -198,6 +167,40 @@ struct PositionSlider: View {
 
   static func format(_ time: TimeInterval) -> String {
     Duration.seconds(max(0, time.rounded())).formatted(.time(pattern: time >= 3600 ? .hourMinuteSecond : .minuteSecond))
+  }
+}
+
+/// Keeps the navigation controller's swipe-to-go-back from starting on this
+/// view, without taking touches from the view's own gestures.
+private struct BlocksSwipeBack: UIGestureRecognizerRepresentable {
+  func makeUIGestureRecognizer(context: Context) -> UILongPressGestureRecognizer {
+    // Recognizes on touch down and holds until the touch ends, and swipe-back
+    // waits for it to fail, so swipe-back can't start.
+    let recognizer = UILongPressGestureRecognizer()
+    recognizer.minimumPressDuration = 0
+    recognizer.allowableMovement = .greatestFiniteMagnitude
+    recognizer.cancelsTouchesInView = false
+    recognizer.delegate = context.coordinator
+    return recognizer
+  }
+
+  func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+
+  final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+      true
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldBeRequiredToFailBy other: UIGestureRecognizer) -> Bool {
+      var responder: UIResponder? = gestureRecognizer.view
+      while let current = responder, !(current is UINavigationController) { responder = current.next }
+      guard let navigation = responder as? UINavigationController else { return false }
+      if other === navigation.interactivePopGestureRecognizer { return true }
+      if #available(iOS 26, *), other === navigation.interactiveContentPopGestureRecognizer { return true }
+      return false
+    }
   }
 }
 
